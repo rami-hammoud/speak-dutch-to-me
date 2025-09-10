@@ -118,25 +118,38 @@ def download_hailort():
     print("\n📥 Downloading HailoRT suite...")
     
     # Check if already exists
-    if os.path.exists("hailort-4.20.0-rpi5.deb"):
-        print("   ✅ HailoRT package already exists")
+    existing_files = [f for f in os.listdir('.') if f.startswith('hailort') and f.endswith('.deb')]
+    if existing_files:
+        print(f"   ✅ HailoRT package already exists: {existing_files[0]}")
         return True
     
-    # Try to download (you may need to update this URL)
+    # Updated URLs for HailoRT
     hailort_urls = [
-        "https://github.com/hailo-ai/hailort/releases/download/v4.20.0/hailort-4.20.0-rpi5.deb",
-        # Add more URLs as backup
+        # Try the official release URL (may need authentication)
+        "https://hailo.ai/downloads/hailort-4.20.0-rpi5.deb",
+        # Alternative direct link (if available)
+        "https://github.com/hailo-ai/hailort/releases/latest/download/hailort-rpi5.deb",
     ]
     
     for url in hailort_urls:
         print(f"   Trying to download from: {url}")
-        result = run_command(f"wget -O hailort-4.20.0-rpi5.deb {url}", "Downloading HailoRT", check=False)
-        if result and result.returncode == 0:
-            return True
+        result = run_command(f"wget --timeout=30 -O hailort-rpi5.deb '{url}'", "Downloading HailoRT", check=False)
+        if result and result.returncode == 0 and os.path.exists("hailort-rpi5.deb"):
+            # Check if file is valid (not an error page)
+            if os.path.getsize("hailort-rpi5.deb") > 1000000:  # At least 1MB
+                print("   ✅ Download successful")
+                return True
+            else:
+                print("   ❌ Downloaded file seems invalid")
+                run_command("rm -f hailort-rpi5.deb", "Removing invalid file", check=False)
     
     print("❌ Could not download HailoRT automatically")
-    print("   Please download manually from: https://hailo.ai/developer-zone/")
-    print("   Look for: hailort rpi5 package")
+    print("   Manual download required:")
+    print("   1. Go to: https://hailo.ai/developer-zone/software-downloads/")
+    print("   2. Register/login if required")
+    print("   3. Download: HailoRT Suite for Raspberry Pi 5")
+    print("   4. Transfer to Pi and place in this directory")
+    print("   5. Run this script again")
     return False
 
 def install_hailort():

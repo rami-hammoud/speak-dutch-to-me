@@ -47,7 +47,7 @@ class AudioManager:
             self.format = pyaudio.paInt16
     
     async def initialize(self):
-        if not AUDIO_AVAILABLE:
+        if not self.audio_available:
             logger.warning("Audio libraries not available. Install pyaudio, SpeechRecognition, and pyttsx3")
             return
         

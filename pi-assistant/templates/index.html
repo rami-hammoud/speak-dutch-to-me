@@ -110,10 +110,31 @@
         .chat-messages {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            max-height: 60vh;
+            scroll-behavior: smooth;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
         }
 
         .message {
@@ -411,9 +432,14 @@
             <div class="right-panel">
                 <!-- Camera -->
                 <div class="camera-panel">
-                    <h3>Camera View</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3>Camera View</h3>
+                        <button class="btn" onclick="toggleCameraStream()" id="cameraToggleBtn">
+                            📷
+                        </button>
+                    </div>
                     <div class="camera-view" id="cameraView">
-                        <span>Camera not available</span>
+                        <span>Camera initializing...</span>
                     </div>
                 </div>
 
@@ -572,7 +598,7 @@
             messageDiv.textContent = content;
             
             messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            scrollToBottom();
         }
 
         function appendToLastMessage(content) {
@@ -580,9 +606,18 @@
             const lastMessage = messages[messages.length - 1];
             if (lastMessage) {
                 lastMessage.textContent += content;
-                document.getElementById('chatMessages').scrollTop = 
-                    document.getElementById('chatMessages').scrollHeight;
+                scrollToBottom();
             }
+        }
+        
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chatMessages');
+            setTimeout(() => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 10);
         }
 
         function getChatHistory() {
@@ -671,8 +706,28 @@
 
         // Camera functions
         function startCameraStream() {
+            checkCameraStatus();
             cameraStreaming = true;
             updateCameraFeed();
+        }
+        
+        function checkCameraStatus() {
+            fetch('/api/camera/status')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Camera status:', data);
+                if (data.available) {
+                    document.getElementById('cameraStatus').classList.add('active');
+                } else {
+                    document.getElementById('cameraStatus').classList.remove('active');
+                    const cameraView = document.getElementById('cameraView');
+                    cameraView.innerHTML = `<span>Camera not available${data.error ? ': ' + data.error : ''}</span>`;
+                }
+            })
+            .catch(error => {
+                console.error('Camera status error:', error);
+                document.getElementById('cameraStatus').classList.remove('active');
+            });
         }
 
         function updateCameraFeed() {
@@ -681,21 +736,36 @@
             fetch('/api/camera/frame')
             .then(response => response.json())
             .then(data => {
-                if (data.frame) {
+                if (data.success && data.frame) {
                     const cameraView = document.getElementById('cameraView');
-                    cameraView.innerHTML = `<img src="${data.frame}" alt="Camera feed">`;
+                    cameraView.innerHTML = `<img src="${data.frame}" alt="Camera feed" style="width: 100%; height: auto; border-radius: 10px;">`;
                     document.getElementById('cameraStatus').classList.add('active');
+                } else {
+                    const cameraView = document.getElementById('cameraView');
+                    cameraView.innerHTML = `<span>Camera error: ${data.error || 'No frame available'}</span>`;
+                    document.getElementById('cameraStatus').classList.remove('active');
                 }
             })
             .catch(error => {
                 console.error('Camera error:', error);
+                const cameraView = document.getElementById('cameraView');
+                cameraView.innerHTML = `<span>Camera connection error</span>`;
                 document.getElementById('cameraStatus').classList.remove('active');
             })
             .finally(() => {
                 if (cameraStreaming) {
-                    setTimeout(updateCameraFeed, 200); // 5 FPS
+                    setTimeout(updateCameraFeed, 1000); // 1 FPS for debugging, increase later
                 }
             });
+        }
+        
+        function toggleCameraStream() {
+            if (cameraStreaming) {
+                cameraStreaming = false;
+                document.getElementById('cameraView').innerHTML = '<span>Camera stopped</span>';
+            } else {
+                startCameraStream();
+            }
         }
 
         function toggleCameraStream() {

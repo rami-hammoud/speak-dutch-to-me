@@ -141,10 +141,28 @@ class PiAssistant:
             """Get current camera frame"""
             try:
                 frame = await self.camera_manager.get_frame()
-                return {"frame": frame}
+                if frame:
+                    return {"frame": frame, "success": True}
+                else:
+                    return {"frame": None, "success": False, "error": "No frame available"}
             except Exception as e:
                 logger.error(f"Camera error: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                return {"frame": None, "success": False, "error": str(e)}
+        
+        @self.app.get("/api/camera/status")
+        async def get_camera_status():
+            """Get camera status"""
+            try:
+                status = {
+                    "available": self.camera_manager.camera_available,
+                    "streaming": self.camera_manager.is_streaming,
+                    "camera_type": "Pi Camera" if self.camera_manager.picamera else "USB Camera" if self.camera_manager.camera else "None",
+                    "has_current_frame": self.camera_manager.current_frame is not None
+                }
+                return status
+            except Exception as e:
+                logger.error(f"Camera status error: {e}")
+                return {"available": False, "streaming": False, "error": str(e)}
     
     async def _handle_websocket_message(self, websocket: WebSocket, data: dict):
         """Handle incoming WebSocket messages"""

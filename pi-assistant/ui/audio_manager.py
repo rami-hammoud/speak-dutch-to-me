@@ -24,7 +24,11 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
+
+
 class AudioManager:
+
+    global AUDIO_AVAILABLE
     """Manages audio input/output and speech recognition"""
     
     def __init__(self):
@@ -42,12 +46,11 @@ class AudioManager:
         self.chunk_size = 1024
         self.format = None
         
-        self.audio_available = AUDIO_AVAILABLE
-        if self.audio_available:
+        if AUDIO_AVAILABLE:
             self.format = pyaudio.paInt16
     
     async def initialize(self):
-        if not self.audio_available:
+        if not AUDIO_AVAILABLE:
             logger.warning("Audio libraries not available. Install pyaudio, SpeechRecognition, and pyttsx3")
             return
         
@@ -197,7 +200,7 @@ class AudioManager:
             return None
     
     async def speak(self, text: str, blocking: bool = False):
-        if not self.audio_available or not self.tts_engine:
+        if not AUDIO_AVAILABLE or not self.tts_engine:
             logger.warning("TTS not available")
             return
         

@@ -17,11 +17,13 @@ def run_check(cmd, description, critical=False):
             print(f"   ✅ Success")
             if result.stdout.strip():
                 # Show first few lines of output
-                lines = result.stdout.strip().split('\n')[:3]
-                for line in lines:
+                all_lines = result.stdout.strip().splitlines()
+                preview = all_lines[:3]
+                for line in preview:
                     print(f"      {line}")
-                if len(result.stdout.strip().split('\n')) > 3:
-                    print(f"      ... (and {len(result.stdout.strip().split('\n')) - 3} more lines)")
+                if len(all_lines) > 3:
+                    more = len(all_lines) - 3
+                    print(f"      ... (and {more} more lines)")
         else:
             status = "❌ Critical Error" if critical else "⚠️  Warning"
             print(f"   {status}: {description}")

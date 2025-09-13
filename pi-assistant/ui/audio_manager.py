@@ -3,14 +3,14 @@ Audio Manager for Pi Assistant
 Handles microphone input, speaker output, and speech recognition
 """
 
-import asyncio
+# import asyncio
 import logging
-import numpy as np
+# import numpy as np
 import io
 import wave
-from typing import Optional, Callable, Any
+from typing import Optional
 import threading
-import time
+# import time
 
 try:
     import pyaudio
@@ -18,7 +18,7 @@ try:
     import pyttsx3
     AUDIO_AVAILABLE = True
 except ImportError:
-    self.audio_available = False
+    AUDIO_AVAILABLE = False
     
 from config import config
 
@@ -47,7 +47,6 @@ class AudioManager:
             self.format = pyaudio.paInt16
     
     async def initialize(self):
-        if not self.audio_available:
         if not AUDIO_AVAILABLE:
             logger.warning("Audio libraries not available. Install pyaudio, SpeechRecognition, and pyttsx3")
             return
@@ -95,7 +94,6 @@ class AudioManager:
             AUDIO_AVAILABLE = False
     
     async def start_recording(self):
-        if not self.audio_available or not self.microphone:
         if not AUDIO_AVAILABLE or not self.microphone:
             raise Exception("Audio not available")
         
@@ -166,7 +164,7 @@ class AudioManager:
             logger.error(f"Failed to stop recording: {e}")
             return None
     
-    def _audio_callback(self, in_data, frame_count, time_info, status):
+    def _audio_callback(self, in_data, *_):
         """PyAudio callback for recording"""
         if self.is_recording:
             self.audio_data.append(in_data)
@@ -254,7 +252,7 @@ class AudioManager:
         except Exception as e:
             logger.error(f"Audio playback error: {e}")
     
-    async def process_audio_chunk(self, audio_data: bytes) -> Optional[str]:
+    async def process_audio_chunk(self, _: bytes) -> Optional[str]:
         """Process a chunk of audio data for real-time recognition"""
         # This would be used for WebSocket streaming audio
         # Implementation depends on the specific use case

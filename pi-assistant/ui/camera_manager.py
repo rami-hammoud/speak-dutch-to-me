@@ -60,18 +60,26 @@ class CameraManager:
                 try:
                     self.camera = Picamera2()
                     
-                    # Configure camera
+                    # Configure camera with basic settings
                     camera_config = self.camera.create_preview_configuration(
-                        main={"size": (self.width, self.height)}
+                        main={"size": (self.width, self.height), "format": "RGB888"}
                     )
+                    
+                    # Configure without transform attribute (causes errors on some setups)
                     self.camera.configure(camera_config)
+                    
+                    # Start camera
                     self.camera.start()
+                    
+                    # Wait for camera to stabilize
+                    time.sleep(2)
                     
                     logger.info("Pi Camera initialized successfully")
                     
                 except Exception as e:
                     logger.warning(f"Pi Camera initialization failed: {e}")
                     self.camera = None
+                    PI_CAMERA_AVAILABLE = False  # Don't try again this session
             
             # Fallback to USB camera
             if not self.camera and OPENCV_AVAILABLE:

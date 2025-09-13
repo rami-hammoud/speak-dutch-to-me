@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pi Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+
+        .status-dot.active {
+            background: #2ed573;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+        }
+
+        .left-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message.user {
+            background: rgba(102, 126, 234, 0.3);
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant {
+            background: rgba(255, 255, 255, 0.15);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.system {
+            background: rgba(255, 193, 7, 0.3);
+            align-self: center;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .input-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-area {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn.recording {
+            background: #ff4757;
+            animation: pulse 1s infinite;
+        }
+
+        .btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .camera-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            height: 250px;
+        }
+
+        .camera-view {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .camera-view img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 10px;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            padding: 15px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .provider-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .provider-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .provider-btn.active {
+            background: rgba(102, 126, 234, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            animation: typingDot 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingDot {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Responsive design for smaller screens */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                flex: none;
+                height: 300px;
+            }
+            
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                🤖 Pi Assistant
+            </div>
+            <div class="status-indicators">
+                <div class="status-indicator">
+                    <div class="status-dot" id="aiStatus"></div>
+                    <span id="currentProvider">Offline</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="cameraStatus"></div>
+                    Camera
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="audioStatus"></div>
+                    Audio
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Chat -->
+            <div class="left-panel">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h2>Chat</h2>
+                        <div class="provider-selector">
+                            <button class="provider-btn" id="ollamaBtn" onclick="setProvider('ollama')">
+                                Ollama
+                            </button>
+                            <button class="provider-btn" id="openaiBtn" onclick="setProvider('openai')">
+                                OpenAI
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message system">
+                            Welcome to Pi Assistant! I'm ready to help you with your Raspberry Pi.
+                        </div>
+                    </div>
+                    
+                    <div class="typing-indicator" id="typingIndicator">
+                        <span>Assistant is typing</span>
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-container">
+                        <div class="input-area">
+                            <input type="text" class="text-input" id="messageInput" 
+                                   placeholder="Type your message..." 
+                                   onkeypress="handleKeyPress(event)">
+                        </div>
+                        <button class="btn" id="voiceBtn" onclick="toggleVoiceInput()">
+                            🎤
+                        </button>
+                        <button class="btn primary" onclick="sendMessage()">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Camera and Controls -->
+            <div class="right-panel">
+                <!-- Camera -->
+                <div class="camera-panel">
+                    <h3>Camera View</h3>
+                    <div class="camera-view" id="cameraView">
+                        <span>Camera not available</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-panel">
+                    <div class="control-group">
+                        <h3>Quick Commands</h3>
+                        <div class="control-buttons">
+                            <button class="btn" onclick="executeCommand('system_info')">
+                                System Info
+                            </button>
+                            <button class="btn" onclick="executeCommand('camera_capture')">
+                                Take Photo
+                            </button>
+                            <button class="btn" onclick="executeCommand('network_status')">
+                                Network
+                            </button>
+                            <button class="btn" onclick="toggleCameraStream()">
+                                Toggle Camera
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws = null;
+        let isRecording = false;
+        let currentProvider = 'ollama';
+        let cameraStreaming = false;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWebSocket();
+            initializeUI();
+            checkSystemStatus();
+        });
+
+        // WebSocket functions
+        function initializeWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+                // Attempt to reconnect after 3 seconds
+                setTimeout(initializeWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'chat_start':
+                    showTypingIndicator(true);
+                    break;
+                
+                case 'chat_chunk':
+                    appendToLastMessage(data.content);
+                    break;
+                
+                case 'chat_complete':
+                    showTypingIndicator(false);
+                    break;
+                
+                case 'transcription':
+                    document.getElementById('messageInput').value = data.content;
+                    break;
+                
+                case 'command_result':
+                    displayCommandResult(data.result);
+                    break;
+                
+                case 'error':
+                    displayError(data.message);
+                    break;
+            }
+        }
+
+        // UI functions
+        function initializeUI() {
+            // Set initial provider button state
+            updateProviderButtons();
+            
+            // Start camera stream
+            startCameraStream();
+        }
+
+        function updateConnectionStatus(connected) {
+            const aiStatus = document.getElementById('aiStatus');
+            if (connected) {
+                aiStatus.classList.add('active');
+            } else {
+                aiStatus.classList.remove('active');
+            }
+        }
+
+        function updateProviderButtons() {
+            document.querySelectorAll('.provider-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(currentProvider + 'Btn').classList.add('active');
+            document.getElementById('currentProvider').textContent = 
+                currentProvider.charAt(0).toUpperCase() + currentProvider.slice(1);
+        }
+
+        // Chat functions
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !ws) return;
+            
+            // Add user message to chat
+            addMessage('user', message);
+            
+            // Clear input
+            input.value = '';
+            
+            // Get conversation history
+            const messages = getChatHistory();
+            
+            // Send via WebSocket for streaming
+            ws.send(JSON.stringify({
+                type: 'chat',
+                messages: messages
+            }));
+            
+            // Add empty assistant message that will be filled by streaming
+            addMessage('assistant', '');
+        }
+
+        function addMessage(role, content) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.textContent = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function appendToLastMessage(content) {
+            const messages = document.querySelectorAll('.message.assistant');
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage) {
+                lastMessage.textContent += content;
+                document.getElementById('chatMessages').scrollTop = 
+                    document.getElementById('chatMessages').scrollHeight;
+            }
+        }
+
+        function getChatHistory() {
+            const messages = [];
+            document.querySelectorAll('.message').forEach(msg => {
+                if (msg.classList.contains('user')) {
+                    messages.push({role: 'user', content: msg.textContent});
+                } else if (msg.classList.contains('assistant')) {
+                    messages.push({role: 'assistant', content: msg.textContent});
+                }
+            });
+            return messages;
+        }
+
+        function showTypingIndicator(show) {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = show ? 'flex' : 'none';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Provider functions
+        function setProvider(provider) {
+            currentProvider = provider;
+            updateProviderButtons();
+            
+            fetch('/api/provider', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({provider: provider})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addMessage('system', `Switched to ${provider} provider`);
+                }
+            })
+            .catch(error => {
+                console.error('Provider change error:', error);
+                displayError('Failed to change provider');
+            });
+        }
+
+        // Voice functions
+        function toggleVoiceInput() {
+            const btn = document.getElementById('voiceBtn');
+            
+            if (!isRecording) {
+                startVoiceInput();
+                btn.classList.add('recording');
+                btn.textContent = '⏹️';
+                isRecording = true;
+            } else {
+                stopVoiceInput();
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+                isRecording = false;
+            }
+        }
+
+        function startVoiceInput() {
+            fetch('/api/audio/start', {method: 'POST'})
+            .catch(error => {
+                console.error('Audio start error:', error);
+                displayError('Failed to start audio recording');
+            });
+        }
+
+        function stopVoiceInput() {
+            fetch('/api/audio/stop', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.transcription) {
+                    document.getElementById('messageInput').value = data.transcription;
+                }
+            })
+            .catch(error => {
+                console.error('Audio stop error:', error);
+                displayError('Failed to process audio');
+            });
+        }
+
+        // Camera functions
+        function startCameraStream() {
+            cameraStreaming = true;
+            updateCameraFeed();
+        }
+
+        function updateCameraFeed() {
+            if (!cameraStreaming) return;
+            
+            fetch('/api/camera/frame')
+            .then(response => response.json())
+            .then(data => {
+                if (data.frame) {
+                    const cameraView = document.getElementById('cameraView');
+                    cameraView.innerHTML = `<img src="${data.frame}" alt="Camera feed">`;
+                    document.getElementById('cameraStatus').classList.add('active');
+                }
+            })
+            .catch(error => {
+                console.error('Camera error:', error);
+                document.getElementById('cameraStatus').classList.remove('active');
+            })
+            .finally(() => {
+                if (cameraStreaming) {
+                    setTimeout(updateCameraFeed, 200); // 5 FPS
+                }
+            });
+        }
+
+        function toggleCameraStream() {
+            cameraStreaming = !cameraStreaming;
+            if (cameraStreaming) {
+                updateCameraFeed();
+            } else {
+                document.getElementById('cameraView').innerHTML = '<span>Camera stopped</span>';
+                document.getElementById('cameraStatus').classList.remove('active');
+            }
+        }
+
+        // Command functions
+        function executeCommand(command) {
+            let commandData = {};
+            
+            switch(command) {
+                case 'system_info':
+                    commandData = {tool: 'system_info', arguments: {}};
+                    break;
+                case 'camera_capture':
+                    commandData = {tool: 'camera_capture', arguments: {}};
+                    break;
+                case 'network_status':
+                    commandData = {tool: 'network_status', arguments: {}};
+                    break;
+                default:
+                    return;
+            }
+            
+            if (ws) {
+                ws.send(JSON.stringify({
+                    type: 'system_command',
+                    command: commandData
+                }));
+            }
+        }
+
+        function displayCommandResult(result) {
+            const resultStr = typeof result === 'object' ? 
+                JSON.stringify(result, null, 2) : result;
+            addMessage('system', `Command result:\n${resultStr}`);
+        }
+
+        function displayError(message) {
+            addMessage('system', `Error: ${message}`);
+        }
+
+        // System status check
+        function checkSystemStatus() {
+            // Check providers
+            fetch('/api/providers')
+            .then(response => response.json())
+            .then(data => {
+                currentProvider = data.current;
+                updateProviderButtons();
+                document.getElementById('aiStatus').classList.add('active');
+            })
+            .catch(error => {
+                console.error('Provider check error:', error);
+            });
+        }
+    </script>
+</body>
+</html>

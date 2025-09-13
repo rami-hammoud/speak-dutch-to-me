@@ -153,10 +153,13 @@ class PiAssistant:
         async def get_camera_status():
             """Get camera status"""
             try:
+                camera_info = self.camera_manager.get_camera_info()
                 status = {
-                    "available": self.camera_manager.camera_available,
-                    "streaming": self.camera_manager.is_streaming,
-                    "camera_type": "Pi Camera" if self.camera_manager.picamera else "USB Camera" if self.camera_manager.camera else "None",
+                    "available": camera_info["available"],
+                    "streaming": camera_info["streaming"],
+                    "camera_type": camera_info["type"] or "None",
+                    "pi_camera": camera_info["pi_camera"],
+                    "usb_camera": camera_info["usb_camera"],
                     "has_current_frame": self.camera_manager.current_frame is not None
                 }
                 return status

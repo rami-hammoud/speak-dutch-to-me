@@ -12,14 +12,12 @@ from typing import Optional, Tuple, Any
 import threading
 import queue
 
-global PI_CAMERA_AVAILABLE
 try:
     import cv2
     import numpy as np
     OPENCV_AVAILABLE = True
 except ImportError:
     OPENCV_AVAILABLE = False
-
 
 try:
     from picamera2 import Picamera2
@@ -36,6 +34,7 @@ class CameraManager:
     
     def __init__(self):
         self.camera = None
+        self.picamera = None  # Separate reference for Pi Camera
         self.is_streaming = False
         self.frame_queue = queue.Queue(maxsize=5)
         self.current_frame = None
@@ -49,6 +48,10 @@ class CameraManager:
         # Detection settings
         self.face_cascade = None
         self.object_cascade = None
+        
+        # Status flags
+        self._pi_camera_available = PI_CAMERA_AVAILABLE
+        self._opencv_available = OPENCV_AVAILABLE
     
     async def initialize(self):
         """Initialize camera"""
@@ -58,52 +61,60 @@ class CameraManager:
         
         try:
             # Try to initialize Pi Camera first
-            if PI_CAMERA_AVAILABLE:
+            if self._pi_camera_available:
                 try:
-                    self.camera = Picamera2()
+                    self.picamera = Picamera2()
                     
                     # Configure camera with basic settings
-                    camera_config = self.camera.create_preview_configuration(
+                    camera_config = self.picamera.create_preview_configuration(
                         main={"size": (self.width, self.height), "format": "RGB888"}
                     )
                     
                     # Configure without transform attribute (causes errors on some setups)
-                    self.camera.configure(camera_config)
+                    self.picamera.configure(camera_config)
                     
                     # Start camera
-                    self.camera.start()
+                    self.picamera.start()
                     
                     # Wait for camera to stabilize
                     time.sleep(2)
+                    
+                    # Set main camera reference
+                    self.camera = self.picamera
                     
                     logger.info("Pi Camera initialized successfully")
                     
                 except Exception as e:
                     logger.warning(f"Pi Camera initialization failed: {e}")
+                    self.picamera = None
                     self.camera = None
-                    PI_CAMERA_AVAILABLE = False  # Don't try again this session
+                    self._pi_camera_available = False  # Don't try again this session
             
             # Fallback to USB camera
-            if not self.camera and OPENCV_AVAILABLE:
+            if not self.camera and self._opencv_available:
                 try:
-                    self.camera = cv2.VideoCapture(0)
+                    usb_camera = cv2.VideoCapture(0)
                     
-                    if self.camera.isOpened():
+                    if usb_camera.isOpened():
                         # Set camera properties
-                        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-                        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
-                        self.camera.set(cv2.CAP_PROP_FPS, self.fps)
+                        usb_camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+                        usb_camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+                        usb_camera.set(cv2.CAP_PROP_FPS, self.fps)
+                        
+                        # Set main camera reference
+                        self.camera = usb_camera
                         
                         logger.info("USB Camera initialized successfully")
                     else:
-                        self.camera = None
+                        usb_camera.release()
                         
                 except Exception as e:
                     logger.warning(f"USB Camera initialization failed: {e}")
-                    self.camera = None
+                    if 'usb_camera' in locals():
+                        usb_camera.release()
             
             # Initialize computer vision components
-            if OPENCV_AVAILABLE:
+            if self._opencv_available:
                 try:
                     # Load face detection cascade
                     self.face_cascade = cv2.CascadeClassifier(
@@ -177,17 +188,20 @@ class CameraManager:
     
     def _capture_frame(self) -> Optional[np.ndarray]:
         """Capture a single frame from camera"""
+        if not self._opencv_available:
+            return None
+            
         try:
-            if PI_CAMERA_AVAILABLE and isinstance(self.camera, Picamera2):
+            if self.picamera and isinstance(self.picamera, Picamera2):
                 # Pi Camera capture
-                frame = self.camera.capture_array()
+                frame = self.picamera.capture_array()
                 if frame is not None:
                     # Convert from RGB to BGR for OpenCV compatibility
                     if len(frame.shape) == 3 and frame.shape[2] == 3:
                         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 return frame
                 
-            elif OPENCV_AVAILABLE and hasattr(self.camera, 'read'):
+            elif self.camera and hasattr(self.camera, 'read'):
                 # USB Camera capture
                 ret, frame = self.camera.read()
                 if ret:
@@ -251,7 +265,7 @@ class CameraManager:
     
     async def detect_faces(self, frame: Optional[np.ndarray] = None) -> list:
         """Detect faces in frame"""
-        if not OPENCV_AVAILABLE or not self.face_cascade:
+        if not self._opencv_available or not self.face_cascade:
             return []
         
         try:
@@ -291,7 +305,7 @@ class CameraManager:
     
     async def get_frame_with_annotations(self, include_faces: bool = True) -> Optional[str]:
         """Get frame with computer vision annotations"""
-        if not OPENCV_AVAILABLE or not self.camera:
+        if not self._opencv_available or not self.camera:
             return await self.get_frame()
         
         try:
@@ -330,33 +344,58 @@ class CameraManager:
     def get_camera_info(self) -> dict:
         """Get camera information"""
         info = {
-            "available": self.camera is not None,
+            "available": self.camera_available,
             "streaming": self.is_streaming,
             "width": self.width,
             "height": self.height,
             "fps": self.fps,
-            "type": None
+            "type": None,
+            "pi_camera": self.pi_camera_available,
+            "usb_camera": self.usb_camera_available
         }
         
-        if self.camera:
-            if PI_CAMERA_AVAILABLE and isinstance(self.camera, Picamera2):
-                info["type"] = "Pi Camera"
-            elif OPENCV_AVAILABLE and hasattr(self.camera, 'read'):
-                info["type"] = "USB Camera"
+        if self.picamera:
+            info["type"] = "Pi Camera"
+        elif self.camera and hasattr(self.camera, 'read'):
+            info["type"] = "USB Camera"
         
         return info
+    
+    @property
+    def camera_available(self) -> bool:
+        """Check if any camera is available"""
+        return self.camera is not None
+    
+    @property
+    def pi_camera_available(self) -> bool:
+        """Check if Pi Camera is available"""
+        return self._pi_camera_available and self.picamera is not None
+    
+    @property
+    def usb_camera_available(self) -> bool:
+        """Check if USB Camera is available"""
+        return self._opencv_available and self.camera is not None and self.picamera is None
     
     async def cleanup(self):
         """Cleanup camera resources"""
         try:
             await self.stop_streaming()
             
-            if self.camera:
-                if PI_CAMERA_AVAILABLE and isinstance(self.camera, Picamera2):
-                    self.camera.stop()
-                    self.camera.close()
-                elif OPENCV_AVAILABLE and hasattr(self.camera, 'release'):
+            if self.picamera:
+                try:
+                    self.picamera.stop()
+                    self.picamera.close()
+                except:
+                    pass
+                self.picamera = None
+                
+            if self.camera and hasattr(self.camera, 'release'):
+                try:
                     self.camera.release()
+                except:
+                    pass
+                
+            self.camera = None
             
             # Clear frame queue
             while not self.frame_queue.empty():

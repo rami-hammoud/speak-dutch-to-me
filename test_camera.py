@@ -12,6 +12,62 @@ import sys
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
+def test_camera_manager():
+    """Test the actual CameraManager from the assistant"""
+    logger.info("=== Testing Pi Assistant Camera Manager ===")
+    
+    try:
+        # Add the pi-assistant directory to path
+        sys.path.insert(0, '/home/rami/workspace/speak-dutch-to-me/pi-assistant')
+        
+        from ui.camera_manager import CameraManager
+        import asyncio
+        
+        async def run_camera_test():
+            camera_manager = CameraManager()
+            logger.info("✓ CameraManager instantiated")
+            
+            # Check initial status
+            logger.info(f"Initial status - Camera available: {camera_manager.camera_available}")
+            logger.info(f"Pi Camera available: {camera_manager._pi_camera_available}")
+            logger.info(f"OpenCV available: {camera_manager._opencv_available}")
+            
+            # Initialize camera
+            await camera_manager.initialize()
+            
+            # Check status after initialization
+            logger.info(f"After init - Camera available: {camera_manager.camera_available}")
+            logger.info(f"Pi Camera active: {camera_manager.pi_camera_available}")
+            logger.info(f"USB Camera active: {camera_manager.usb_camera_available}")
+            
+            if camera_manager.camera_available:
+                logger.info("✓ Camera manager initialized successfully")
+                
+                # Get camera info
+                info = camera_manager.get_camera_info()
+                logger.info(f"Camera info: {info}")
+                
+                # Test frame capture
+                frame = await camera_manager.get_frame('base64')
+                if frame:
+                    logger.info("✓ Frame captured via camera manager")
+                    logger.info(f"Frame data length: {len(frame) if frame else 0}")
+                    return True
+                else:
+                    logger.error("✗ Failed to get frame via camera manager")
+                    return False
+            else:
+                logger.error("✗ Camera manager - no camera available")
+                return False
+        
+        return asyncio.run(run_camera_test())
+        
+    except Exception as e:
+        logger.error(f"✗ Camera manager test error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def test_picamera2():
     """Test Pi Camera using picamera2"""
     logger.info("=== Testing Pi Camera (picamera2) ===")
@@ -25,7 +81,8 @@ def test_picamera2():
         logger.info("✓ Picamera2 instance created")
         
         # List available camera configurations
-        logger.info(f"Available cameras: {len(picam2.camera_manager.cameras)}")
+        cameras = Picamera2.global_camera_info()
+        logger.info(f"Available cameras: {len(cameras)}")
         
         # Create configuration
         config = picam2.create_preview_configuration(
@@ -107,52 +164,14 @@ def test_opencv_camera():
         logger.error(f"✗ USB Camera error: {e}")
         return False
 
-def test_camera_manager():
-    """Test the actual CameraManager from the assistant"""
-    logger.info("=== Testing Pi Assistant Camera Manager ===")
-    
-    try:
-        # Add the pi-assistant directory to path
-        sys.path.insert(0, '/home/rami/workspace/speak-dutch-to-me/pi-assistant')
-        
-        from ui.camera_manager import CameraManager
-        import asyncio
-        
-        async def run_camera_test():
-            camera_manager = CameraManager()
-            
-            # Initialize camera
-            await camera_manager.initialize()
-            
-            if camera_manager.camera:
-                logger.info("✓ Camera manager initialized successfully")
-                
-                # Test frame capture
-                frame = await camera_manager.get_frame('base64')
-                if frame:
-                    logger.info("✓ Frame captured via camera manager")
-                    return True
-                else:
-                    logger.error("✗ Failed to get frame via camera manager")
-                    return False
-            else:
-                logger.error("✗ Camera manager initialization failed")
-                return False
-        
-        return asyncio.run(run_camera_test())
-        
-    except Exception as e:
-        logger.error(f"✗ Camera manager test error: {e}")
-        return False
-
 def main():
     """Run all camera tests"""
     logger.info("Starting comprehensive camera tests...")
     
     results = {
+        'camera_manager': test_camera_manager(),
         'picamera2': test_picamera2(),
-        'opencv': test_opencv_camera(),
-        'camera_manager': test_camera_manager()
+        'opencv': test_opencv_camera()
     }
     
     logger.info("=== Test Results Summary ===")

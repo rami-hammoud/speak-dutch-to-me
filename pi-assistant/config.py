@@ -35,6 +35,8 @@ class Config:
     CAMERA_ENABLED: bool = True
     CAMERA_WIDTH: int = 640
     CAMERA_HEIGHT: int = 480
+    FORCE_USB_CAMERA: bool = False  # Set to True to force USB camera over Pi Camera
+    USE_AI_HAT_CAMERA: bool = True  # Set to True to enable AI HAT+ (IMX500) camera
     
     # Display settings
     FULLSCREEN: bool = True

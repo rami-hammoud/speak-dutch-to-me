@@ -60,14 +60,27 @@ class CameraManager:
             return
         
         try:
-            # Try to initialize Pi Camera first
-            if self._pi_camera_available:
+            # Try to initialize Pi Camera (AI HAT+ or standard Pi Camera)
+            if self._pi_camera_available and not config.FORCE_USB_CAMERA:
                 try:
+                    # Set environment for AI HAT+ if enabled
+                    import os
+                    if config.USE_AI_HAT_CAMERA:
+                        os.environ['LIBCAMERA_LOG_LEVELS'] = '*:WARN'
+                        # Check for AI HAT+ tuning files
+                        ai_hat_tuning = '/usr/share/libcamera/ipa/rpi/pisp/imx500_ai_hat.json'
+                        if os.path.exists(ai_hat_tuning):
+                            os.environ['LIBCAMERA_RPI_TUNING_FILE'] = ai_hat_tuning
+                            logger.info("Using AI HAT+ (IMX500) tuning file")
+                        else:
+                            logger.info("AI HAT+ enabled but tuning file not found")
+                    
                     self.picamera = Picamera2()
                     
-                    # Configure camera with basic settings
+                    # Configure camera with settings optimized for AI HAT+
                     camera_config = self.picamera.create_preview_configuration(
-                        main={"size": (self.width, self.height), "format": "RGB888"}
+                        main={"size": (self.width, self.height), "format": "RGB888"},
+                        buffer_count=2  # Reduce buffer count for stability
                     )
                     
                     # Configure without transform attribute (causes errors on some setups)

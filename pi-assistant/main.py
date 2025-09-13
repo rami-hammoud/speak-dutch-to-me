@@ -1,8 +1,3 @@
-"""
-Main application for the Pi Assistant
-Touch-friendly web interface for Raspberry Pi with AI Hat
-"""
-
 import asyncio
 import logging
 import os

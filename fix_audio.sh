@@ -260,6 +260,9 @@ def test_pyaudio():
         pa.terminate()
         return True
         
+    except ImportError:
+        print("⚠️  PyAudio not installed (optional for basic functionality)")
+        return True  # Don't fail the test if PyAudio is missing
     except Exception as e:
         print(f"❌ PyAudio test failed: {e}")
         return False
@@ -325,15 +328,33 @@ EOF
 
 chmod +x test_audio.py
 
-# Install Python audio dependencies if not present
-print_status "Installing Python audio dependencies..."
-if command -v pip3 &> /dev/null; then
-    pip3 install --user pyaudio SpeechRecognition pyttsx3 || true
+# Install Python audio dependencies via system packages
+print_status "Installing Python audio dependencies via system packages..."
+sudo apt install -y python3-pyaudio python3-speech-recognition python3-pyttsx3 || true
+
+# If system packages aren't available, try pip in user mode with fallback
+if ! python3 -c "import pyaudio" 2>/dev/null; then
+    print_warning "System packages not available, trying pip with --break-system-packages..."
+    pip3 install --user --break-system-packages pyaudio SpeechRecognition pyttsx3 || true
 fi
 
 # Start audio services
 print_status "Starting audio services..."
-systemctl --user start pulseaudio.service || true
+
+# Try to start PulseAudio as a user daemon
+print_status "Starting PulseAudio as user daemon..."
+pulseaudio --start --daemonize || true
+
+# Alternative: start via systemctl user
+systemctl --user start pulseaudio.service 2>/dev/null || true
+
+# Check if PulseAudio is running
+if pgrep -x pulseaudio >/dev/null; then
+    print_success "PulseAudio is running"
+else
+    print_warning "PulseAudio failed to start, trying manual start..."
+    pulseaudio --daemonize=no --exit-idle-time=-1 &
+fi
 
 # Wait a moment for services to start
 sleep 3

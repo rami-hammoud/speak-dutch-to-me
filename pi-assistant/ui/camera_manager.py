@@ -12,12 +12,14 @@ from typing import Optional, Tuple, Any
 import threading
 import queue
 
+global PI_CAMERA_AVAILABLE
 try:
     import cv2
     import numpy as np
     OPENCV_AVAILABLE = True
 except ImportError:
     OPENCV_AVAILABLE = False
+
 
 try:
     from picamera2 import Picamera2

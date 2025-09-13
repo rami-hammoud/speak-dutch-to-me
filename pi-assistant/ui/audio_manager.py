@@ -91,6 +91,7 @@ class AudioManager:
             
         except Exception as e:
             logger.error(f"Audio initialization error: {e}")
+            global AUDIO_AVAILABLE
             AUDIO_AVAILABLE = False
     
     async def start_recording(self):

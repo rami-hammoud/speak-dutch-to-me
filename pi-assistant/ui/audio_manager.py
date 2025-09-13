@@ -18,7 +18,7 @@ try:
     import pyttsx3
     AUDIO_AVAILABLE = True
 except ImportError:
-    AUDIO_AVAILABLE = False
+    self.audio_available = False
     
 from config import config
 
@@ -42,11 +42,12 @@ class AudioManager:
         self.chunk_size = 1024
         self.format = None
         
-        if AUDIO_AVAILABLE:
+        self.audio_available = AUDIO_AVAILABLE
+        if self.audio_available:
             self.format = pyaudio.paInt16
     
     async def initialize(self):
-        """Initialize audio components"""
+        if not self.audio_available:
         if not AUDIO_AVAILABLE:
             logger.warning("Audio libraries not available. Install pyaudio, SpeechRecognition, and pyttsx3")
             return
@@ -91,11 +92,10 @@ class AudioManager:
             
         except Exception as e:
             logger.error(f"Audio initialization error: {e}")
-            global AUDIO_AVAILABLE
             AUDIO_AVAILABLE = False
     
     async def start_recording(self):
-        """Start recording audio"""
+        if not self.audio_available or not self.microphone:
         if not AUDIO_AVAILABLE or not self.microphone:
             raise Exception("Audio not available")
         
@@ -199,7 +199,7 @@ class AudioManager:
             return None
     
     async def speak(self, text: str, blocking: bool = False):
-        """Convert text to speech and play it"""
+        if not self.audio_available or not self.tts_engine:
         if not AUDIO_AVAILABLE or not self.tts_engine:
             logger.warning("TTS not available")
             return

@@ -49,16 +49,17 @@ sudo pkill -f pulseaudio || true
 # Install/update audio packages
 print_status "Installing/updating audio packages..."
 sudo apt update
-sudo apt install -y \
-    pulseaudio \
-    pulseaudio-utils \
-    pavucontrol \
-    alsa-utils \
-    alsa-base \
-    libasound2-plugins \
-    portaudio19-dev \
-    espeak \
-    espeak-data
+
+# Check what packages are available and install them
+AUDIO_PACKAGES="pulseaudio pulseaudio-utils alsa-utils libasound2-plugins portaudio19-dev espeak espeak-data"
+
+# Try to install pavucontrol (GUI tool, optional)
+if apt-cache show pavucontrol >/dev/null 2>&1; then
+    AUDIO_PACKAGES="$AUDIO_PACKAGES pavucontrol"
+fi
+
+# Install the available packages
+sudo apt install -y $AUDIO_PACKAGES
 
 # Configure ALSA for Raspberry Pi 5
 print_status "Configuring ALSA..."

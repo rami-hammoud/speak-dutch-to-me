@@ -11,6 +11,7 @@ import time
 from typing import Optional, Tuple, Any
 import threading
 import queue
+import os
 
 try:
     import cv2
@@ -53,6 +54,60 @@ class CameraManager:
         self._pi_camera_available = PI_CAMERA_AVAILABLE
         self._opencv_available = OPENCV_AVAILABLE
     
+    def _find_ai_hat_tuning_path(self) -> Optional[str]:
+        """Find best-guess IMX500 tuning file path for Raspberry Pi 5 (pisp) and older (vc4)."""
+        candidates = [
+            # Raspberry Pi 5 uses pisp
+            "/usr/share/libcamera/ipa/rpi/pisp/imx500.json",
+            "/usr/share/libcamera/ipa/rpi/pisp/imx500_ai_camera.json",
+            "/usr/share/libcamera/ipa/rpi/pisp/imx500_ai_hat.json",
+            "/usr/share/libcamera/ipa/rpi/pisp/imx500_scientific.json",
+            # Older (vc4) fallback
+            "/usr/share/libcamera/ipa/rpi/vc4/imx500.json",
+            "/usr/share/libcamera/ipa/rpi/vc4/imx500_ai_camera.json",
+            "/usr/share/libcamera/ipa/rpi/vc4/imx500_scientific.json",
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                return path
+        return None
+
+    def _apply_ai_hat_environment(self):
+        """Apply environment hints for AI HAT+ (IMX500) based on Waveshare/RPi docs."""
+        # Quiet verbose libcamera logs
+        os.environ.setdefault("LIBCAMERA_LOG_LEVELS", "*:WARN")
+        # Only set tuning file if user hasn't overridden it
+        if config.USE_AI_HAT_CAMERA and "LIBCAMERA_RPI_TUNING_FILE" not in os.environ:
+            tuning = self._find_ai_hat_tuning_path()
+            if tuning:
+                os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning
+                logger.info(f"Using IMX500 tuning file: {tuning}")
+            else:
+                logger.info("IMX500 tuning file not found; using default libcamera tuning")
+
+    def _select_picamera_index(self) -> Optional[int]:
+        """Select Picamera2 camera index, preferring IMX500 when enabled."""
+        try:
+            infos = Picamera2.global_camera_info()
+        except Exception as e:
+            logger.warning(f"Failed to query camera info: {e}")
+            return None
+        if not infos:
+            return None
+
+        # Log available cameras
+        for i, info in enumerate(infos):
+            logger.info(f"Camera[{i}] info: {info}")
+
+        # Prefer IMX500 (AI camera) if requested
+        if config.USE_AI_HAT_CAMERA:
+            for i, info in enumerate(infos):
+                if "imx500" in str(info).lower():
+                    return i
+
+        # Otherwise just pick the first camera
+        return 0
+    
     async def initialize(self):
         """Initialize camera"""
         if not config.CAMERA_ENABLED:
@@ -63,40 +118,32 @@ class CameraManager:
             # Try to initialize Pi Camera (AI HAT+ or standard Pi Camera)
             if self._pi_camera_available and not config.FORCE_USB_CAMERA:
                 try:
-                    # Set environment for AI HAT+ if enabled
-                    import os
-                    if config.USE_AI_HAT_CAMERA:
-                        os.environ['LIBCAMERA_LOG_LEVELS'] = '*:WARN'
-                        # Check for AI HAT+ tuning files
-                        ai_hat_tuning = '/usr/share/libcamera/ipa/rpi/pisp/imx500_ai_hat.json'
-                        if os.path.exists(ai_hat_tuning):
-                            os.environ['LIBCAMERA_RPI_TUNING_FILE'] = ai_hat_tuning
-                            logger.info("Using AI HAT+ (IMX500) tuning file")
-                        else:
-                            logger.info("AI HAT+ enabled but tuning file not found")
+                    # Apply environment for IMX500 (Pi 5 uses pisp tuning path)
+                    self._apply_ai_hat_environment()
+
+                    # Prefer IMX500 when enabled
+                    cam_index = self._select_picamera_index()
+                    if cam_index is not None:
+                        self.picamera = Picamera2(camera_num=cam_index)
+                    else:
+                        self.picamera = Picamera2()
                     
-                    self.picamera = Picamera2()
-                    
-                    # Configure camera with settings optimized for AI HAT+
+                    # Configure preview stream; Picamera2 will run NULL preview when not showing UI
                     camera_config = self.picamera.create_preview_configuration(
                         main={"size": (self.width, self.height), "format": "RGB888"},
-                        buffer_count=2  # Reduce buffer count for stability
+                        buffer_count=3
                     )
-                    
-                    # Configure without transform attribute (causes errors on some setups)
                     self.picamera.configure(camera_config)
-                    
-                    # Start camera
+
+                    # Start camera (no on-screen preview)
                     self.picamera.start()
-                    
-                    # Wait for camera to stabilize
+
+                    # Allow a short warm-up
                     time.sleep(2)
-                    
+
                     # Set main camera reference
                     self.camera = self.picamera
-                    
                     logger.info("Pi Camera initialized successfully")
-                    
                 except Exception as e:
                     logger.warning(f"Pi Camera initialization failed: {e}")
                     self.picamera = None
@@ -107,20 +154,14 @@ class CameraManager:
             if not self.camera and self._opencv_available:
                 try:
                     usb_camera = cv2.VideoCapture(0)
-                    
                     if usb_camera.isOpened():
-                        # Set camera properties
                         usb_camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
                         usb_camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
                         usb_camera.set(cv2.CAP_PROP_FPS, self.fps)
-                        
-                        # Set main camera reference
                         self.camera = usb_camera
-                        
                         logger.info("USB Camera initialized successfully")
                     else:
                         usb_camera.release()
-                        
                 except Exception as e:
                     logger.warning(f"USB Camera initialization failed: {e}")
                     if 'usb_camera' in locals():
@@ -129,12 +170,10 @@ class CameraManager:
             # Initialize computer vision components
             if self._opencv_available:
                 try:
-                    # Load face detection cascade
                     self.face_cascade = cv2.CascadeClassifier(
                         cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
                     )
                     logger.info("Face detection initialized")
-                    
                 except Exception as e:
                     logger.warning(f"Face detection initialization failed: {e}")
             

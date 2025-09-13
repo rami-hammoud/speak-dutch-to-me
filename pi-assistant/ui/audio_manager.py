@@ -12,6 +12,8 @@ from typing import Optional
 import threading
 # import time
 
+global AUDIO_AVAILABLE
+
 try:
     import pyaudio
     import speech_recognition as sr
@@ -27,8 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class AudioManager:
-
-    global AUDIO_AVAILABLE
+    
     """Manages audio input/output and speech recognition"""
     
     def __init__(self):

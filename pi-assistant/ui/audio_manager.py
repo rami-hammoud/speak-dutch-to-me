@@ -198,7 +198,6 @@ class AudioManager:
     
     async def speak(self, text: str, blocking: bool = False):
         if not self.audio_available or not self.tts_engine:
-        if not AUDIO_AVAILABLE or not self.tts_engine:
             logger.warning("TTS not available")
             return
         

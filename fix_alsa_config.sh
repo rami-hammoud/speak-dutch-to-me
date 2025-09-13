@@ -15,17 +15,64 @@ fi
 echo "Removing corrupted asound.conf..."
 sudo rm -f /etc/asound.conf
 
-# Create new clean asound.conf
+# Create new clean asound.conf optimized for your hardware
 echo "Creating new asound.conf..."
 sudo tee /etc/asound.conf > /dev/null <<EOF
-# ALSA Configuration for Raspberry Pi
-# Default audio devices
+# ALSA Configuration for Raspberry Pi with USB Audio and DigiAMP+
+# Optimized for current hardware + future Seeed ReSpeaker XvF3800 USB 4-mic array
+# Supports: USB PnP Sound Device, ReSpeaker XvF3800, DigiAMP+ (playback)
 
+# Auto-detect and use best available microphone (prioritizes ReSpeaker if available)
 pcm.!default {
-    type pulse
+    type asym
+    playback.pcm "plughw:CARD=DigiAMP,DEV=0"
+    capture.pcm "plughw:CARD=Device,DEV=0"
 }
 
 ctl.!default {
+    type hw
+    card 1
+}
+
+# ReSpeaker XvF3800 USB 4-mic array (future upgrade)
+pcm.respeaker {
+    type hw
+    card "XvF3800" 
+    device 0
+    channels 4
+    rate 48000
+}
+
+# Current USB Audio for capture (microphone)
+pcm.usb_mic {
+    type hw
+    card 0
+    device 0
+}
+
+# DigiAMP+ for playback (speakers)
+pcm.digiamp {
+    type hw  
+    card 1
+    device 0
+}
+
+# Smart microphone selection - tries ReSpeaker first, falls back to USB mic
+pcm.smart_mic {
+    type plug
+    slave.pcm {
+        @func refer
+        name { @func concat strings [ "hw:CARD=" { @func card_name card "XvF3800" } ",DEV=0" ] }
+        default "plughw:0,0"
+    }
+}
+
+# PulseAudio compatibility
+pcm.pulse {
+    type pulse
+}
+
+ctl.pulse {
     type pulse
 }
 

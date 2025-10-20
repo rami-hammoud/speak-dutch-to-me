@@ -22,9 +22,11 @@ except ImportError:
 
 try:
     from picamera2 import Picamera2
+    from libcamera import Transform
     PI_CAMERA_AVAILABLE = True
 except ImportError:
     PI_CAMERA_AVAILABLE = False
+    Transform = None
 
 from config import config
 
@@ -128,10 +130,18 @@ class CameraManager:
                     else:
                         self.picamera = Picamera2()
                     
-                    # Configure preview stream; Picamera2 will run NULL preview when not showing UI
+                    # Configure preview stream with flip options
+                    transform = None
+                    if Transform is not None:
+                        transform = Transform(
+                            vflip=1 if config.CAMERA_VFLIP else 0,
+                            hflip=1 if config.CAMERA_HFLIP else 0
+                        )
+                    
                     camera_config = self.picamera.create_preview_configuration(
                         main={"size": (self.width, self.height), "format": "RGB888"},
-                        buffer_count=3
+                        buffer_count=3,
+                        transform=transform
                     )
                     self.picamera.configure(camera_config)
 
@@ -257,6 +267,13 @@ class CameraManager:
                 # USB Camera capture
                 ret, frame = self.camera.read()
                 if ret:
+                    # Apply flip settings for USB camera
+                    if config.CAMERA_VFLIP and config.CAMERA_HFLIP:
+                        frame = cv2.flip(frame, -1)  # Both flips (180° rotation)
+                    elif config.CAMERA_VFLIP:
+                        frame = cv2.flip(frame, 0)   # Vertical flip only
+                    elif config.CAMERA_HFLIP:
+                        frame = cv2.flip(frame, 1)   # Horizontal flip only
                     return frame
                 
         except Exception as e:

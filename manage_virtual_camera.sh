@@ -2,7 +2,7 @@
 # Quick utility to manage the virtual camera service
 set -euo pipefail
 
-SERVICE="virtual-camera@${USER}.service"
+SERVICE="virtual-camera.service"
 
 case "${1:-}" in
   start)

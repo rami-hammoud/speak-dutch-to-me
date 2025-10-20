@@ -141,7 +141,7 @@ log "✓ Systemd service created"
 # Enable and start the service
 log "Enabling virtual camera service..."
 sudo systemctl daemon-reload
-sudo systemctl enable virtual-camera@${USER}.service
+sudo systemctl enable virtual-camera.service
 log "✓ Service enabled (will start on boot)"
 
 # Ask user if they want to start now

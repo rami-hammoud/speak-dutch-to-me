@@ -116,7 +116,7 @@ log "✓ Streaming script created"
 
 # Create systemd service
 log "Creating systemd service..."
-sudo tee /etc/systemd/system/virtual-camera.service >/dev/null <<'SERVICE_EOF'
+sudo tee /etc/systemd/system/virtual-camera.service >/dev/null <<SERVICE_EOF
 [Unit]
 Description=Virtual Camera Stream for Zoom
 After=network.target

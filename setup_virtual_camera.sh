@@ -124,7 +124,7 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=%i
+User=$USER
 ExecStartPre=/bin/sleep 5
 ExecStart=/usr/local/bin/stream-to-virtual-cam.sh
 Restart=always

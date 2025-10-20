@@ -148,16 +148,16 @@ log "✓ Service enabled (will start on boot)"
 read -r -p "Start the virtual camera service now? [Y/n]: " START_NOW
 if [[ ! "${START_NOW:-}" =~ ^[Nn]$ ]]; then
   log "Starting service..."
-  sudo systemctl start virtual-camera@${USER}.service
+  sudo systemctl start virtual-camera.service
   sleep 3
   
   # Check status
-  if sudo systemctl is-active --quiet virtual-camera@${USER}.service; then
+  if sudo systemctl is-active --quiet virtual-camera.service; then
     log "✓ Service is running"
   else
     warn "Service may have issues. Check status with:"
-    warn "  sudo systemctl status virtual-camera@${USER}.service"
-    warn "  sudo journalctl -u virtual-camera@${USER}.service -f"
+    warn "  sudo systemctl status virtual-camera.service"
+    warn "  sudo journalctl -u virtual-camera.service -f"
   fi
 fi
 
@@ -183,10 +183,10 @@ log "  /usr/local/bin/stream-to-virtual-cam.sh"
 log "  (Remove VFLIP or HFLIP lines to disable flipping)"
 log ""
 log "Service management:"
-log "  Start:   sudo systemctl start virtual-camera@${USER}.service"
-log "  Stop:    sudo systemctl stop virtual-camera@${USER}.service"
-log "  Status:  sudo systemctl status virtual-camera@${USER}.service"
-log "  Logs:    sudo journalctl -u virtual-camera@${USER}.service -f"
+log "  Start:   sudo systemctl start virtual-camera.service"
+log "  Stop:    sudo systemctl stop virtual-camera.service"
+log "  Status:  sudo systemctl status virtual-camera.service"
+log "  Logs:    sudo journalctl -u virtual-camera.service -f"
 log ""
 log "In Zoom:"
 log "  1. Open Settings → Video"

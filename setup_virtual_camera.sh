@@ -44,7 +44,7 @@ if ! grep -q "^v4l2loopback" /etc/modules 2>/dev/null; then
 fi
 
 sudo mkdir -p /etc/modprobe.d
-cat <<'EOF' | sudo tee /etc/modprobe.d/v4l2loopback.conf >/dev/null
+cat <<EOF | sudo tee /etc/modprobe.d/v4l2loopback.conf >/dev/null
 # Virtual camera for Zoom/video conferencing
 options v4l2loopback devices=1 video_nr=10 card_label="PiAssistantCam" exclusive_caps=1
 EOF
@@ -52,7 +52,7 @@ log "✓ Module configured to load on boot"
 
 # Create the streaming script
 log "Creating camera streaming script..."
-sudo tee /usr/local/bin/stream-to-virtual-cam.sh >/dev/null <<'SCRIPT_EOF'
+sudo tee /usr/local/bin/stream-to-virtual-cam.sh >/dev/null <<SCRIPT_EOF
 #!/usr/bin/env bash
 # Stream Pi Camera to virtual device with flip
 set -euo pipefail

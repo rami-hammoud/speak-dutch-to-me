@@ -52,7 +52,7 @@ log "✓ Module configured to load on boot"
 
 # Create the streaming script
 log "Creating camera streaming script..."
-sudo tee /usr/local/bin/stream-to-virtual-cam.sh >/dev/null <<SCRIPT_EOF
+sudo tee /usr/local/bin/stream-to-virtual-cam.sh >/dev/null <<'SCRIPT_EOF'
 #!/usr/bin/env bash
 # Stream Pi Camera to virtual device with flip
 set -euo pipefail

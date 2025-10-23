@@ -1,0 +1,67 @@
+# Python 3.13 Compatible Requirements for Raspberry Pi
+# Use with: pip install -r requirements-pi.txt
+
+# ============================================================================
+# Core Web Framework (REQUIRED)
+# ============================================================================
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+jinja2>=3.1.3
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+websockets>=12.0
+
+# ============================================================================
+# HTTP & Networking (REQUIRED)
+# ============================================================================
+httpx>=0.26.0
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# ============================================================================
+# AI & LLM (OPTIONAL - for cloud AI providers)
+# ============================================================================
+anthropic>=0.18.0
+openai>=1.12.0
+
+# ============================================================================
+# Database & Data (REQUIRED)
+# ============================================================================
+aiosqlite>=0.19.0
+
+# ============================================================================
+# Utilities (REQUIRED)
+# ============================================================================
+psutil>=5.9.8
+
+# ============================================================================
+# Audio Processing (INSTALL VIA APT FOR PYTHON 3.13)
+# ============================================================================
+# DO NOT install these via pip on Python 3.13 - use system packages:
+# sudo apt install python3-numpy python3-opencv python3-pyaudio
+#
+# If you must install via pip (may fail):
+# SpeechRecognition>=3.10.0
+# pyttsx3>=2.90
+# PyAudio>=0.2.14
+
+# ============================================================================
+# Computer Vision (INSTALL VIA APT FOR PYTHON 3.13)
+# ============================================================================
+# DO NOT install these via pip on Python 3.13 - use system packages:
+# sudo apt install python3-opencv python3-numpy python3-pil
+#
+# If you must install via pip (may fail or be slow):
+# opencv-python>=4.9.0
+# numpy>=1.26.0
+# pillow>=10.2.0
+
+# ============================================================================
+# Notes for Python 3.13 on Raspberry Pi
+# ============================================================================
+# Python 3.13 removed pkgutil.ImpImporter which breaks older setuptools.
+# Solutions:
+# 1. Use --system-site-packages when creating venv
+# 2. Install numpy, opencv, pyaudio via apt (python3-*)
+# 3. Upgrade setuptools to 70.0.0+ before installing other packages
+# 4. Use --no-build-isolation for problematic packages

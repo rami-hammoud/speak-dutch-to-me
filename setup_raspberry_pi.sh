@@ -125,11 +125,13 @@ install_pi_hardware() {
         python3-libcamera \
         python3-picamera2
     
-    log "Installing additional Python libraries..."
+    log "Installing system Python libraries (better for Python 3.13)..."
     sudo apt install -y \
         python3-opencv \
         python3-pyaudio \
-        python3-numpy
+        python3-numpy \
+        python3-pil \
+        python3-scipy || warn "Some Python libraries not available"
     
     # Enable camera interface
     log "Enabling camera interface..."
@@ -236,26 +238,51 @@ setup_python_environment() {
         rm -rf "$VENV_DIR"
     fi
     
-    log "Creating Python virtual environment..."
-    python3 -m venv "$VENV_DIR"
+    log "Creating Python virtual environment with system packages..."
+    python3 -m venv --system-site-packages "$VENV_DIR"
     
     log "Activating virtual environment..."
     source "$VENV_DIR/bin/activate"
     
-    log "Upgrading pip, setuptools, and wheel..."
-    pip install --upgrade pip setuptools wheel
+    log "Upgrading pip and build tools (Python 3.13 compatible)..."
+    pip install --upgrade pip
+    pip install --upgrade "setuptools>=70.0.0" "wheel>=0.42.0"
     
-    log "Installing Python dependencies from requirements.txt..."
+    log "Installing core web framework dependencies..."
+    pip install fastapi uvicorn[standard] jinja2 python-dotenv websockets || error "Failed to install web framework"
+    
+    log "Installing HTTP client libraries..."
+    pip install httpx aiohttp requests || warn "Some HTTP libraries failed"
+    
+    log "Installing AI/LLM libraries..."
+    pip install anthropic openai || warn "AI libraries failed (optional)"
+    
+    log "Installing database and utilities..."
+    pip install aiosqlite psutil python-multipart || warn "Some utilities failed"
+    
+    log "Installing audio libraries (using system packages where possible)..."
+    pip install SpeechRecognition pyttsx3 || warn "Audio libraries failed - using system packages"
+    
+    log "Installing remaining dependencies from requirements.txt..."
     if [[ -f requirements.txt ]]; then
-        pip install -r requirements.txt
-        success "All Python dependencies installed"
+        # Try to install remaining packages, but don't fail if some don't work
+        pip install -r requirements.txt 2>&1 | tee /tmp/pip-install.log || {
+            warn "Some packages from requirements.txt failed to install"
+            warn "Check /tmp/pip-install.log for details"
+        }
     else
-        error "requirements.txt not found in $PI_ASSISTANT_DIR"
+        warn "requirements.txt not found, installed core packages only"
     fi
+    
+    log "Verifying critical imports..."
+    python -c "import fastapi, uvicorn; print('✓ Web framework: OK')" || error "Web framework not working"
+    python -c "import cv2, numpy; print('✓ Computer vision: OK')" || warn "OpenCV not available (optional)"
+    python -c "import sqlite3; print('✓ Database: OK')" || error "Database not working"
     
     deactivate
     
     success "Python virtual environment configured"
+    log "Note: Using system packages for OpenCV, NumPy, and PyAudio (better compatibility)"
 }
 
 # ============================================================================

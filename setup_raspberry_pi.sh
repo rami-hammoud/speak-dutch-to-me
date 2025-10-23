@@ -125,13 +125,17 @@ install_pi_hardware() {
         python3-libcamera \
         python3-picamera2
     
-    log "Installing system Python libraries (better for Python 3.13)..."
+    log "Installing system Python libraries (required for Python 3.13)..."
     sudo apt install -y \
         python3-opencv \
         python3-pyaudio \
         python3-numpy \
         python3-pil \
-        python3-scipy || warn "Some Python libraries not available"
+        python3-scipy \
+        python3-picamera2 \
+        python3-rpi.gpio || warn "Some Python libraries not available"
+    
+    success "System Python packages installed"
     
     # Enable camera interface
     log "Enabling camera interface..."
@@ -248,31 +252,42 @@ setup_python_environment() {
     pip install --upgrade pip
     pip install --upgrade "setuptools>=70.0.0" "wheel>=0.42.0"
     
+    # Use --no-build-isolation to avoid setuptools bugs in temporary build envs
+    export PIP_NO_BUILD_ISOLATION=1
+    
     log "Installing core web framework dependencies..."
-    pip install fastapi uvicorn[standard] jinja2 python-dotenv websockets || error "Failed to install web framework"
+    pip install --no-build-isolation fastapi uvicorn jinja2 python-dotenv websockets || {
+        warn "Retrying without --no-build-isolation..."
+        pip install fastapi uvicorn jinja2 python-dotenv websockets || error "Failed to install web framework"
+    }
     
     log "Installing HTTP client libraries..."
-    pip install httpx aiohttp requests || warn "Some HTTP libraries failed"
+    pip install --no-build-isolation httpx aiohttp requests || {
+        warn "Retrying without --no-build-isolation..."
+        pip install httpx aiohttp requests || warn "Some HTTP libraries failed (non-critical)"
+    }
     
-    log "Installing AI/LLM libraries..."
-    pip install anthropic openai || warn "AI libraries failed (optional)"
+    log "Installing AI/LLM libraries (optional)..."
+    pip install --no-build-isolation anthropic openai || warn "AI libraries failed (optional - can add later)"
     
     log "Installing database and utilities..."
-    pip install aiosqlite psutil python-multipart || warn "Some utilities failed"
+    pip install --no-build-isolation aiosqlite psutil python-multipart || {
+        warn "Retrying without --no-build-isolation..."
+        pip install aiosqlite psutil python-multipart || warn "Some utilities failed"
+    }
     
-    log "Installing audio libraries (using system packages where possible)..."
-    pip install SpeechRecognition pyttsx3 || warn "Audio libraries failed - using system packages"
+    log "Installing audio libraries (optional)..."
+    pip install --no-build-isolation SpeechRecognition pyttsx3 || warn "Audio libraries skipped - using system packages"
     
     log "Installing remaining dependencies from requirements.txt..."
     if [[ -f requirements.txt ]]; then
-        # Try to install remaining packages, but don't fail if some don't work
-        pip install -r requirements.txt 2>&1 | tee /tmp/pip-install.log || {
-            warn "Some packages from requirements.txt failed to install"
-            warn "Check /tmp/pip-install.log for details"
+        # Install from requirements but skip packages that are comments or already installed
+        pip install --no-build-isolation -r requirements.txt 2>&1 | tee /tmp/pip-install.log || {
+            warn "Some optional packages failed (this is OK if using system packages)"
         }
-    else
-        warn "requirements.txt not found, installed core packages only"
     fi
+    
+    unset PIP_NO_BUILD_ISOLATION
     
     log "Verifying critical imports..."
     python -c "import fastapi, uvicorn; print('✓ Web framework: OK')" || error "Web framework not working"

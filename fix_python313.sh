@@ -51,27 +51,47 @@ pip install --upgrade "setuptools>=70.0.0" "wheel>=0.42.0"
 success "Build tools upgraded"
 
 log "Step 5/5: Installing application dependencies..."
+
+# Set environment variable to use upgraded setuptools in build isolation
+export PIP_NO_BUILD_ISOLATION=1
+
 log "Installing web framework..."
-pip install fastapi uvicorn[standard] jinja2 python-dotenv websockets
+pip install --no-build-isolation fastapi "uvicorn[standard]" jinja2 python-dotenv websockets || {
+    warn "Trying with build isolation..."
+    pip install fastapi uvicorn jinja2 python-dotenv websockets
+}
 
 log "Installing HTTP clients..."
-pip install httpx aiohttp requests
+pip install --no-build-isolation httpx aiohttp requests || {
+    warn "Trying with build isolation..."
+    pip install httpx aiohttp requests
+}
 
 log "Installing AI libraries (optional)..."
-pip install anthropic openai || warn "AI libraries failed (optional)"
+pip install --no-build-isolation anthropic openai || warn "AI libraries failed (optional)"
 
 log "Installing utilities..."
-pip install aiosqlite psutil python-multipart
+pip install --no-build-isolation aiosqlite psutil python-multipart || {
+    pip install aiosqlite psutil python-multipart
+}
 
 log "Installing audio processing (may use system packages)..."
-pip install SpeechRecognition pyttsx3 || warn "Using system audio packages"
+pip install --no-build-isolation SpeechRecognition pyttsx3 || warn "Using system audio packages"
 
 log "Installing from requirements-pi.txt (if exists)..."
 if [[ -f requirements-pi.txt ]]; then
-    pip install -r requirements-pi.txt || warn "Some packages failed"
+    pip install --no-build-isolation -r requirements-pi.txt 2>&1 || warn "Some packages failed (check logs)"
 elif [[ -f requirements.txt ]]; then
-    pip install -r requirements.txt || warn "Some packages failed"
+    # Try each package individually to avoid one failure breaking everything
+    while IFS= read -r package; do
+        # Skip comments and empty lines
+        [[ "$package" =~ ^#.*$ ]] || [[ -z "$package" ]] && continue
+        log "Installing: $package"
+        pip install --no-build-isolation "$package" || warn "Failed: $package (optional)"
+    done < requirements.txt
 fi
+
+unset PIP_NO_BUILD_ISOLATION
 
 log "Verifying critical packages..."
 python -c "import fastapi, uvicorn; print('✓ Web framework OK')" || error "FastAPI failed"

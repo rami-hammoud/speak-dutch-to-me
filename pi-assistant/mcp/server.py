@@ -310,8 +310,16 @@ class MCPServer:
             width = args.get("width", 640)
             height = args.get("height", 480)
             
-            # Use libcamera for Raspberry Pi
-            cmd = f"libcamera-still -o {filename} --width {width} --height {height} --timeout 2000"
+            # Use rpicam-still for newer Raspberry Pi OS (replaces libcamera-still)
+            # Try rpicam-still first, fallback to libcamera-still for older systems
+            import shutil
+            if shutil.which("rpicam-still"):
+                cmd = f"rpicam-still -o {filename} --width {width} --height {height} --timeout 2000"
+            elif shutil.which("libcamera-still"):
+                cmd = f"libcamera-still -o {filename} --width {width} --height {height} --timeout 2000"
+            else:
+                return {"error": "No camera command found (rpicam-still or libcamera-still)"}
+            
             result = await self._run_command(cmd)
             
             return {"filename": filename, "result": "success"}

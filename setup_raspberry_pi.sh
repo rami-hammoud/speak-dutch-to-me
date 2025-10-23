@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Raspberry Pi Setup Script for Dutch Learning AI Assistant
 # This script sets up everything needed to run the assistant on a Raspberry Pi
+# Supports: Debian Trixie, Python 3.13+, CI/CD deployments
 set -euo pipefail
 
 # Colors for output
@@ -25,6 +26,55 @@ PI_ASSISTANT_DIR="$SCRIPT_DIR/pi-assistant"
 VENV_DIR="$PI_ASSISTANT_DIR/venv"
 DATA_DIR="$PI_ASSISTANT_DIR/data"
 LOGS_DIR="$PI_ASSISTANT_DIR/logs"
+
+# CI/CD Mode: Non-interactive mode (no prompts)
+NON_INTERACTIVE=${NON_INTERACTIVE:-false}
+SKIP_PI_CHECK=${SKIP_PI_CHECK:-false}
+ENABLE_SYSTEMD=${ENABLE_SYSTEMD:-false}
+INSTALL_OLLAMA=${INSTALL_OLLAMA:-true}
+SKIP_REBOOT_PROMPT=${SKIP_REBOOT_PROMPT:-false}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --non-interactive|-n)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        --skip-pi-check)
+            SKIP_PI_CHECK=true
+            shift
+            ;;
+        --enable-systemd)
+            ENABLE_SYSTEMD=true
+            shift
+            ;;
+        --skip-ollama)
+            INSTALL_OLLAMA=false
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -n, --non-interactive    Run without prompts (CI/CD mode)"
+            echo "  --skip-pi-check          Skip Raspberry Pi hardware check"
+            echo "  --enable-systemd         Enable systemd services automatically"
+            echo "  --skip-ollama            Skip Ollama installation"
+            echo "  -h, --help               Show this help message"
+            echo ""
+            echo "Environment variables:"
+            echo "  NON_INTERACTIVE=true     Same as --non-interactive"
+            echo "  SKIP_PI_CHECK=true       Same as --skip-pi-check"
+            echo "  ENABLE_SYSTEMD=true      Same as --enable-systemd"
+            echo "  INSTALL_OLLAMA=false     Same as --skip-ollama"
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1. Use --help for usage information."
+            ;;
+    esac
+done
 
 # Check if running on Raspberry Pi
 check_raspberry_pi() {
@@ -200,6 +250,11 @@ CAMERA_SCRIPT
 # ============================================================================
 install_ollama() {
     step "STEP 5/9: Installing Ollama (Local LLM)"
+    
+    if [[ "$INSTALL_OLLAMA" == "false" ]]; then
+        warn "Skipping Ollama installation (--skip-ollama flag set)"
+        return 0
+    fi
     
     if command -v ollama &>/dev/null; then
         success "Ollama already installed"
@@ -507,6 +562,114 @@ VCAM_SERVICE
 }
 
 # ============================================================================
+# Verification: Test All Components
+# ============================================================================
+verify_installation() {
+    step "VERIFICATION: Testing All Components"
+    
+    local failed=0
+    local warnings=0
+    
+    # Test 1: Python Environment
+    log "Testing Python environment..."
+    if [[ -f "$VENV_DIR/bin/activate" ]]; then
+        source "$VENV_DIR/bin/activate"
+        if python -c "import fastapi, uvicorn" 2>/dev/null; then
+            success "Python virtual environment: OK"
+        else
+            error "Python environment test failed"
+            ((failed++))
+        fi
+        deactivate
+    else
+        error "Virtual environment not found"
+        ((failed++))
+    fi
+    
+    # Test 2: System Packages
+    log "Testing system packages..."
+    if python3 -c "import cv2, numpy" 2>/dev/null; then
+        success "OpenCV and NumPy: OK"
+    else
+        warn "OpenCV/NumPy not available (optional)"
+        ((warnings++))
+    fi
+    
+    # Test 3: Camera
+    log "Testing camera..."
+    if command -v rpicam-hello &>/dev/null; then
+        success "Camera utilities: OK"
+    else
+        warn "Camera utilities not found"
+        ((warnings++))
+    fi
+    
+    # Test 4: Virtual Camera
+    log "Testing virtual camera..."
+    if [[ -e /dev/video10 ]]; then
+        success "Virtual camera device: OK"
+    else
+        warn "Virtual camera not loaded (will work after reboot)"
+        ((warnings++))
+    fi
+    
+    # Test 5: Ollama
+    if [[ "$INSTALL_OLLAMA" == "true" ]]; then
+        log "Testing Ollama..."
+        if command -v ollama &>/dev/null; then
+            if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then
+                success "Ollama service: OK"
+            else
+                warn "Ollama installed but not responding"
+                ((warnings++))
+            fi
+        else
+            warn "Ollama not installed"
+            ((warnings++))
+        fi
+    fi
+    
+    # Test 6: Audio
+    log "Testing audio..."
+    if command -v aplay &>/dev/null && command -v arecord &>/dev/null; then
+        success "Audio utilities: OK"
+    else
+        warn "Audio utilities incomplete"
+        ((warnings++))
+    fi
+    
+    # Test 7: Database
+    log "Testing database..."
+    if [[ -f "$DATA_DIR/vocabulary.db" ]] || command -v sqlite3 &>/dev/null; then
+        success "Database: OK"
+    else
+        warn "Database not initialized"
+        ((warnings++))
+    fi
+    
+    # Test 8: Configuration
+    log "Testing configuration..."
+    if [[ -f "$PI_ASSISTANT_DIR/.env" ]]; then
+        success "Configuration file: OK"
+    else
+        warn "Configuration file not found"
+        ((warnings++))
+    fi
+    
+    echo ""
+    if [[ $failed -eq 0 ]]; then
+        success "✓ All critical components verified successfully!"
+        if [[ $warnings -gt 0 ]]; then
+            warn "⚠ $warnings optional component(s) have warnings"
+        fi
+        return 0
+    else
+        error "✗ $failed critical component(s) failed verification"
+        return 1
+    fi
+}
+
+# ============================================================================
 # Print Summary
 # ============================================================================
 print_summary() {
@@ -565,30 +728,17 @@ print_summary() {
     echo ""
     
     success "Setup script complete! Happy learning Dutch! 🇳🇱"
+    
+    # Prompt for reboot unless in non-interactive mode
+    if [[ "$SKIP_REBOOT_PROMPT" == "false" ]] && [[ "$NON_INTERACTIVE" == "false" ]]; then
+        echo ""
+        read -p "Would you like to reboot now? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            log "Rebooting system..."
+            sudo reboot
+        fi
+    fi
 }
 
-# ============================================================================
-# Main Execution
-# ============================================================================
-main() {
-    print_banner
-    check_raspberry_pi
-    
-    # Run all setup steps
-    update_system
-    install_base_dependencies
-    install_pi_hardware
-    setup_virtual_camera
-    install_ollama
-    setup_python_environment
-    configure_audio
-    setup_database
-    create_configuration
-    create_systemd_services
-    
-    # Print summary
-    print_summary
-}
-
-# Run main function
-main "$@"
+# =========================================================================

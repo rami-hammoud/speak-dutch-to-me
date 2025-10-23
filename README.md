@@ -21,62 +21,70 @@ An interactive Dutch learning system powered by AI HAT+ (Hailo-8L) on Raspberry 
 
 ## 📦 Quick Setup
 
-### 1. Initial System Setup (First Time Only)
+### One-Command Installation (Recommended)
+
+For **Debian Trixie / Python 3.13+** on Raspberry Pi:
 
 ```bash
-# Update system and install basic dependencies
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/speak-dutch-to-me.git
+cd speak-dutch-to-me
+
+# Run the automated setup script
+chmod +x setup_trixie.sh
+./setup_trixie.sh
+```
+
+The setup script will automatically:
+- ✅ Install all system dependencies
+- ✅ Setup Python 3.13 environment with proper compatibility
+- ✅ Install Ollama with llama3.2:3b model (optimized for Pi)
+- ✅ Configure camera and audio systems
+- ✅ Create virtual camera for Zoom/Meet
+- ✅ Setup systemd services (optional)
+
+After installation completes:
+
+```bash
+# 1. Configure your settings (add API keys if desired)
+cd pi-assistant
+nano .env
+
+# 2. Start the assistant
+./start_assistant.sh
+
+# 3. Access the web interface
+# Browser: http://YOUR_PI_IP:8080
+# Dutch learning: http://YOUR_PI_IP:8080/dutch-learning
+```
+
+⚠️ **Important:** Reboot after installation to activate virtual camera and hardware modules:
+```bash
+sudo reboot
+```
+
+📚 **For detailed instructions, troubleshooting, and manual setup:** See [SETUP_GUIDE.md](SETUP_GUIDE.md)
+
+### Legacy Setup (Old Method)
+
+<details>
+<summary>Click to expand old setup instructions (deprecated)</summary>
+
+```bash
+# Update system
 sudo apt update && sudo apt upgrade -y
 
-# Clone or download this repository
-# If you haven't already, get the files to your Pi
-
-# Make scripts executable (if not already done)
+# Make scripts executable
 chmod +x *.sh
-```
 
-### 2. Configure AI HAT+ and Ollama
-
-You've already completed the Ollama installation! Now optimize it:
-
-```bash
-# Configure Ollama for AI HAT+ integration
+# Configure Ollama for AI HAT+
 ./configure_ollama_ai_hat.sh
-```
 
-### 3. Fix Audio System
-
-```bash
-# Fix audio configuration issues
+# Fix audio
 ./fix_audio.sh
-
-# Test audio after running the script
-python3 test_audio.py
 ```
 
-### 4. Set Up Dutch Learning Assistant
-
-```bash
-# Configure the Pi Assistant for Dutch learning
-cd pi-assistant
-./setup_pi_assistant.sh
-
-# Go back to main directory
-cd ..
-
-# Set up Dutch-specific features
-./setup_dutch_assistant.sh
-```
-
-### 5. Start the Assistant
-
-```bash
-# Start the Dutch learning assistant
-./start_dutch_assistant.sh
-```
-
-Then open your web browser to:
-- **Main interface**: http://localhost:8080
-- **Dutch learning interface**: http://localhost:8080/dutch
+</details>
 
 ## 🎯 Current Status
 

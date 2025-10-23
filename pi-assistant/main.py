@@ -166,7 +166,108 @@ class PiAssistant:
             except Exception as e:
                 logger.error(f"Camera status error: {e}")
                 return {"available": False, "streaming": False, "error": str(e)}
-    
+        
+        @self.app.get("/dutch-learning", response_class=HTMLResponse)
+        async def dutch_learning_page(request: Request):
+            """Dutch learning page"""
+            return self.templates.TemplateResponse(
+                "dutch_learning.html",
+                {"request": request}
+            )
+        
+        @self.app.get("/api/dutch/stats")
+        async def get_dutch_stats():
+            """Get Dutch learning statistics"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_progress_stats", {"period": "week"})
+                streak = await self.mcp_server.execute_tool("dutch_streak_info", {})
+                return {
+                    **result.get("stats", {}),
+                    "current_streak": streak.get("current_streak", 0)
+                }
+            except Exception as e:
+                logger.error(f"Error getting stats: {e}")
+                return {"error": str(e)}
+        
+        @self.app.get("/api/dutch/review-words")
+        async def get_review_words(count: int = 10):
+            """Get words for review"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_vocabulary_review", {"count": count})
+                return result
+            except Exception as e:
+                logger.error(f"Error getting review words: {e}")
+                return {"words": []}
+        
+        @self.app.get("/api/dutch/vocabulary")
+        async def search_vocabulary(query: str = "", limit: int = 50):
+            """Search vocabulary"""
+            try:
+                if query:
+                    result = await self.mcp_server.execute_tool("dutch_vocabulary_search", {"query": query})
+                else:
+                    result = await self.mcp_server.execute_tool("dutch_vocabulary_review", {"count": limit})
+                return {"words": result.get("results", result.get("words", []))}
+            except Exception as e:
+                logger.error(f"Error searching vocabulary: {e}")
+                return {"words": []}
+        
+        @self.app.post("/api/dutch/vocabulary")
+        async def add_vocabulary(request: dict):
+            """Add new vocabulary"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_vocabulary_add", request)
+                return result
+            except Exception as e:
+                logger.error(f"Error adding vocabulary: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/api/dutch/exercises")
+        async def get_exercises(topic: str = "articles", difficulty: str = "easy", count: int = 5):
+            """Get grammar exercises"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_grammar_exercise", {
+                    "topic": topic,
+                    "difficulty": difficulty,
+                    "count": count
+                })
+                return result
+            except Exception as e:
+                logger.error(f"Error getting exercises: {e}")
+                return {"exercises": []}
+        
+        @self.app.post("/api/dutch/conversation/start")
+        async def start_conversation(request: dict):
+            """Start conversation practice"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_conversation_practice", request)
+                return result
+            except Exception as e:
+                logger.error(f"Error starting conversation: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/api/dutch/daily-challenge")
+        async def get_daily_challenge():
+            """Get daily challenge"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_daily_challenge", {})
+                return result
+            except Exception as e:
+                logger.error(f"Error getting challenge: {e}")
+                return {"challenge": None}
+        
+        @self.app.post("/api/dutch/translate")
+        async def translate_text(request: dict):
+            """Translate text"""
+            try:
+                result = await self.mcp_server.execute_tool("dutch_translate", request)
+                return result
+            except Exception as e:
+                logger.error(f"Error translating: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        # ...existing code...
+        
     async def _handle_websocket_message(self, websocket: WebSocket, data: dict):
         """Handle incoming WebSocket messages"""
         try:

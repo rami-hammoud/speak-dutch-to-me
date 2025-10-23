@@ -1,0 +1,244 @@
+{
+  "vocabulary": [
+    {
+      "dutch": "hallo",
+      "english": "hello",
+      "category": "greetings",
+      "level": "A1",
+      "pronunciation": "HAH-loh",
+      "example": "Hallo! Hoe gaat het? (Hello! How are you?)"
+    },
+    {
+      "dutch": "dag",
+      "english": "goodbye",
+      "category": "greetings",
+      "level": "A1",
+      "pronunciation": "DAHKH",
+      "example": "Dag! Tot ziens! (Goodbye! See you!)"
+    },
+    {
+      "dutch": "dank je wel",
+      "english": "thank you",
+      "category": "greetings",
+      "level": "A1",
+      "pronunciation": "DAHNK yuh VEL",
+      "example": "Dank je wel voor je hulp! (Thank you for your help!)"
+    },
+    {
+      "dutch": "alstublieft",
+      "english": "please (formal)",
+      "category": "greetings",
+      "level": "A1",
+      "pronunciation": "AHL-stew-BLEEFT",
+      "example": "Koffie, alstublieft. (Coffee, please.)"
+    },
+    {
+      "dutch": "ja",
+      "english": "yes",
+      "category": "basic",
+      "level": "A1",
+      "pronunciation": "YAH",
+      "example": "Ja, dat klopt! (Yes, that's correct!)"
+    },
+    {
+      "dutch": "nee",
+      "english": "no",
+      "category": "basic",
+      "level": "A1",
+      "pronunciation": "NAY",
+      "example": "Nee, ik spreek geen Nederlands. (No, I don't speak Dutch.)"
+    },
+    {
+      "dutch": "één",
+      "english": "one",
+      "category": "numbers",
+      "level": "A1",
+      "pronunciation": "AYN",
+      "example": "Ik heb één appel. (I have one apple.)"
+    },
+    {
+      "dutch": "twee",
+      "english": "two",
+      "category": "numbers",
+      "level": "A1",
+      "pronunciation": "TWAY",
+      "example": "Twee koffie, alstublieft. (Two coffees, please.)"
+    },
+    {
+      "dutch": "drie",
+      "english": "three",
+      "category": "numbers",
+      "level": "A1",
+      "pronunciation": "DREE",
+      "example": "Ik heb drie katten. (I have three cats.)"
+    },
+    {
+      "dutch": "rood",
+      "english": "red",
+      "category": "colors",
+      "level": "A1",
+      "pronunciation": "ROHT",
+      "example": "De appel is rood. (The apple is red.)"
+    },
+    {
+      "dutch": "blauw",
+      "english": "blue",
+      "category": "colors",
+      "level": "A1",
+      "pronunciation": "BLAU",
+      "example": "De lucht is blauw. (The sky is blue.)"
+    },
+    {
+      "dutch": "groen",
+      "english": "green",
+      "category": "colors",
+      "level": "A1",
+      "pronunciation": "KHROON",
+      "example": "Het gras is groen. (The grass is green.)"
+    },
+    {
+      "dutch": "appel",
+      "english": "apple",
+      "category": "food",
+      "level": "A1",
+      "pronunciation": "AH-pul",
+      "example": "Ik eet een appel. (I eat an apple.)"
+    },
+    {
+      "dutch": "brood",
+      "english": "bread",
+      "category": "food",
+      "level": "A1",
+      "pronunciation": "BROHT",
+      "example": "Ik eet brood met kaas. (I eat bread with cheese.)"
+    },
+    {
+      "dutch": "kaas",
+      "english": "cheese",
+      "category": "food",
+      "level": "A1",
+      "pronunciation": "KAHS",
+      "example": "Nederlandse kaas is lekker. (Dutch cheese is delicious.)"
+    },
+    {
+      "dutch": "water",
+      "english": "water",
+      "category": "food",
+      "level": "A1",
+      "pronunciation": "VAH-tur",
+      "example": "Mag ik een glas water? (May I have a glass of water?)"
+    },
+    {
+      "dutch": "koffie",
+      "english": "coffee",
+      "category": "food",
+      "level": "A1",
+      "pronunciation": "KOF-fee",
+      "example": "Ik drink koffie met melk. (I drink coffee with milk.)"
+    },
+    {
+      "dutch": "huis",
+      "english": "house",
+      "category": "home",
+      "level": "A1",
+      "pronunciation": "HOUSE",
+      "example": "Mijn huis is groot. (My house is big.)"
+    },
+    {
+      "dutch": "tafel",
+      "english": "table",
+      "category": "home",
+      "level": "A1",
+      "pronunciation": "TAH-ful",
+      "example": "De tafel is bruin. (The table is brown.)"
+    },
+    {
+      "dutch": "stoel",
+      "english": "chair",
+      "category": "home",
+      "level": "A1",
+      "pronunciation": "STOOL",
+      "example": "Ga zitten op de stoel. (Sit down on the chair.)"
+    },
+    {
+      "dutch": "fiets",
+      "english": "bicycle",
+      "category": "travel",
+      "level": "A1",
+      "pronunciation": "FEETS",
+      "example": "Ik ga met de fiets naar werk. (I go to work by bicycle.)"
+    },
+    {
+      "dutch": "auto",
+      "english": "car",
+      "category": "travel",
+      "level": "A1",
+      "pronunciation": "AU-toh",
+      "example": "Mijn auto is rood. (My car is red.)"
+    },
+    {
+      "dutch": "trein",
+      "english": "train",
+      "category": "travel",
+      "level": "A1",
+      "pronunciation": "TRAYN",
+      "example": "De trein komt om vijf uur. (The train comes at five o'clock.)"
+    },
+    {
+      "dutch": "mooi",
+      "english": "beautiful",
+      "category": "feelings",
+      "level": "A2",
+      "pronunciation": "MOY",
+      "example": "Het weer is mooi vandaag. (The weather is beautiful today.)"
+    },
+    {
+      "dutch": "blij",
+      "english": "happy",
+      "category": "feelings",
+      "level": "A2",
+      "pronunciation": "BLAY",
+      "example": "Ik ben heel blij! (I am very happy!)"
+    },
+    {
+      "dutch": "moe",
+      "english": "tired",
+      "category": "feelings",
+      "level": "A2",
+      "pronunciation": "MOO",
+      "example": "Ik ben moe na het werk. (I am tired after work.)"
+    },
+    {
+      "dutch": "gezellig",
+      "english": "cozy/nice",
+      "category": "feelings",
+      "level": "A2",
+      "pronunciation": "khuh-ZEL-lukh",
+      "example": "Het is hier gezellig! (It's cozy here!)"
+    },
+    {
+      "dutch": "werken",
+      "english": "to work",
+      "category": "work",
+      "level": "A2",
+      "pronunciation": "VER-kun",
+      "example": "Ik werk in Amsterdam. (I work in Amsterdam.)"
+    },
+    {
+      "dutch": "leren",
+      "english": "to learn",
+      "category": "work",
+      "level": "A2",
+      "pronunciation": "LAY-run",
+      "example": "Ik leer Nederlands. (I am learning Dutch.)"
+    },
+    {
+      "dutch": "spreken",
+      "english": "to speak",
+      "category": "work",
+      "level": "A2",
+      "pronunciation": "SPRAY-kun",
+      "example": "Spreek je Nederlands? (Do you speak Dutch?)"
+    }
+  ]
+}

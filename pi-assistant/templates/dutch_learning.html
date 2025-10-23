@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dutch Learning - Pi Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            margin-bottom: 20px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+
+        .word-dutch {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .word-english {
+            font-size: 36px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .word-pronunciation {
+            font-size: 20px;
+            opacity: 0.7;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .word-example {
+            font-size: 18px;
+            text-align: center;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        .word-category {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .flashcard-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-success {
+            background: rgba(46, 213, 115, 0.6);
+        }
+
+        .btn-danger {
+            background: rgba(255, 71, 87, 0.6);
+        }
+
+        .exercise-container {
+            margin-bottom: 30px;
+        }
+
+        .exercise-question {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .exercise-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .option-btn.correct {
+            background: rgba(46, 213, 115, 0.3);
+            border-color: #2ed573;
+        }
+
+        .option-btn.incorrect {
+            background: rgba(255, 71, 87, 0.3);
+            border-color: #ff4757;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ed573, #1abc9c);
+            transition: width 0.3s ease;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+
+        .vocab-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .vocab-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vocab-words {
+            flex: 1;
+        }
+
+        .vocab-dutch {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .vocab-english {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .mastery-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .streak-flame {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.7;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .feedback-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .feedback-success {
+            background: rgba(46, 213, 115, 0.3);
+        }
+
+        .feedback-error {
+            background: rgba(255, 71, 87, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🇳🇱 Dutch Learning</div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">🏠 Home</a>
+                <a href="/dutch-learning" class="nav-link">📚 Learn</a>
+                <a href="#" class="nav-link">📊 Progress</a>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card fade-in">
+                <div class="stat-label">🔥 Current Streak</div>
+                <div class="stat-value" id="streak-count">0</div>
+                <div class="stat-label">days</div>
+            </div>
+            <div class="stat-card fade-in">
+                <div class="stat-label">📖 Total Words</div>
+                <div class="stat-value" id="total-words">0</div>
+                <div class="stat-label">learned</div>
+            </div>
+            <div class="stat-card fade-in">
+                <div class="stat-label">⭐ Mastery</div>
+                <div class="stat-value" id="mastery-avg">0%</div>
+                <div class="stat-label">average</div>
+            </div>
+            <div class="stat-card fade-in">
+                <div class="stat-label">⏱️ Time Spent</div>
+                <div class="stat-value" id="time-spent">0</div>
+                <div class="stat-label">minutes</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <span id="mode-title">📇 Vocabulary Flashcards</span>
+                    <span id="progress-text">0 / 0</span>
+                </div>
+
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="flashcards">📇 Flashcards</button>
+                    <button class="mode-btn" data-mode="exercises">✏️ Exercises</button>
+                    <button class="mode-btn" data-mode="conversation">💬 Conversation</button>
+                </div>
+
+                <div id="flashcards-mode">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-bar" style="width: 0%"></div>
+                    </div>
+
+                    <div class="flashcard-container">
+                        <div class="flashcard" id="flashcard">
+                            <div class="flashcard-face">
+                                <div class="word-category" id="word-category">loading...</div>
+                                <div class="word-dutch" id="word-dutch">Loading...</div>
+                                <div class="word-pronunciation" id="word-pronunciation-front"></div>
+                                <p style="opacity: 0.7; margin-top: 20px;">Click to reveal translation</p>
+                            </div>
+                            <div class="flashcard-face flashcard-back">
+                                <div class="word-english" id="word-english">...</div>
+                                <div class="word-pronunciation" id="word-pronunciation-back"></div>
+                                <div class="word-example" id="word-example"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flashcard-controls">
+                        <button class="btn btn-danger" id="btn-hard">😰 Hard</button>
+                        <button class="btn" id="btn-flip">🔄 Flip</button>
+                        <button class="btn btn-success" id="btn-easy">😊 Easy</button>
+                    </div>
+                </div>
+
+                <div id="exercises-mode" style="display: none;">
+                    <div id="exercise-container" class="exercise-container">
+                        <div class="loading">Loading exercises...</div>
+                    </div>
+                </div>
+
+                <div id="conversation-mode" style="display: none;">
+                    <div class="exercise-container">
+                        <div class="exercise-question" id="conversation-prompt">
+                            Hallo! Hoe heet je? (Hello! What's your name?)
+                        </div>
+                        <textarea 
+                            id="conversation-input" 
+                            class="text-input" 
+                            placeholder="Type your response in Dutch..."
+                            style="width: 100%; min-height: 100px; padding: 15px; border-radius: 10px; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 16px;"
+                        ></textarea>
+                        <div class="flashcard-controls">
+                            <button class="btn btn-primary" id="btn-speak">🎤 Speak</button>
+                            <button class="btn btn-primary" id="btn-submit-conv">✅ Submit</button>
+                        </div>
+                        <div id="conversation-feedback" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card fade-in">
+                    <div class="card-header">
+                        📚 Your Vocabulary
+                    </div>
+                    <div class="vocab-list" id="vocab-list">
+                        <div class="loading">Loading vocabulary...</div>
+                    </div>
+                </div>
+
+                <div class="card fade-in" style="margin-top: 20px;">
+                    <div class="card-header">
+                        🎯 Daily Challenge
+                    </div>
+                    <div id="daily-challenge">
+                        <div class="loading">Loading challenge...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let currentWords = [];
+        let currentIndex = 0;
+        let currentMode = 'flashcards';
+        let stats = {};
+        let exercises = [];
+        let currentExerciseIndex = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadStats();
+            await loadWords();
+            await loadVocabulary();
+            await loadDailyChallenge();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Mode switching
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.dataset.mode;
+                    switchMode(mode);
+                });
+            });
+
+            // Flashcard controls
+            document.getElementById('flashcard').addEventListener('click', flipCard);
+            document.getElementById('btn-flip').addEventListener('click', flipCard);
+            document.getElementById('btn-easy').addEventListener('click', () => rateCard('easy'));
+            document.getElementById('btn-hard').addEventListener('click', () => rateCard('hard'));
+
+            // Conversation
+            document.getElementById('btn-submit-conv').addEventListener('click', submitConversation);
+            document.getElementById('btn-speak').addEventListener('click', startSpeechRecognition);
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            // Show/hide mode containers
+            document.getElementById('flashcards-mode').style.display = mode === 'flashcards' ? 'block' : 'none';
+            document.getElementById('exercises-mode').style.display = mode === 'exercises' ? 'block' : 'none';
+            document.getElementById('conversation-mode').style.display = mode === 'conversation' ? 'block' : 'none';
+
+            // Update title
+            const titles = {
+                'flashcards': '📇 Vocabulary Flashcards',
+                'exercises': '✏️ Grammar Exercises',
+                'conversation': '💬 Conversation Practice'
+            };
+            document.getElementById('mode-title').textContent = titles[mode];
+
+            // Load mode-specific content
+            if (mode === 'exercises') {
+                loadExercises();
+            } else if (mode === 'conversation') {
+                startConversation();
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/dutch/stats');
+                stats = await response.json();
+                
+                document.getElementById('streak-count').textContent = stats.current_streak || 0;
+                document.getElementById('total-words').textContent = stats.total_vocabulary || 0;
+                document.getElementById('mastery-avg').textContent = (stats.average_mastery || 0) + '%';
+                document.getElementById('time-spent').textContent = stats.time_spent_minutes || 0;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadWords() {
+            try {
+                const response = await fetch('/api/dutch/review-words?count=20');
+                const data = await response.json();
+                currentWords = data.words || [];
+                currentIndex = 0;
+                updateCard();
+            } catch (error) {
+                console.error('Error loading words:', error);
+                document.getElementById('word-dutch').textContent = 'Error loading words';
+            }
+        }
+
+        function updateCard() {
+            if (currentWords.length === 0) {
+                document.getElementById('word-dutch').textContent = 'No words available';
+                return;
+            }
+
+            const word = currentWords[currentIndex];
+            document.getElementById('word-dutch').textContent = word.dutch;
+            document.getElementById('word-pronunciation-front').textContent = word.pronunciation;
+            document.getElementById('word-english').textContent = word.english;
+            document.getElementById('word-pronunciation-back').textContent = word.pronunciation;
+            document.getElementById('word-example').textContent = word.example;
+            document.getElementById('word-category').textContent = word.category || 'general';
+
+            // Update progress
+            document.getElementById('progress-text').textContent = `${currentIndex + 1} / ${currentWords.length}`;
+            const progress = ((currentIndex + 1) / currentWords.length) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+
+            // Reset flip
+            document.getElementById('flashcard').classList.remove('flipped');
+        }
+
+        function flipCard() {
+            document.getElementById('flashcard').classList.toggle('flipped');
+        }
+
+        async function rateCard(difficulty) {
+            // Move to next card
+            currentIndex++;
+            if (currentIndex >= currentWords.length) {
+                currentIndex = 0;
+                showFeedback('success', '🎉 Great job! You completed all words!');
+                await loadWords(); // Reload words
+            } else {
+                updateCard();
+            }
+        }
+
+        async function loadVocabulary() {
+            try {
+                const response = await fetch('/api/dutch/vocabulary?limit=50');
+                const data = await response.json();
+                const vocabList = document.getElementById('vocab-list');
+                
+                if (data.words && data.words.length > 0) {
+                    vocabList.innerHTML = data.words.map(word => `
+                        <div class="vocab-item">
+                            <div class="vocab-words">
+                                <div class="vocab-dutch">${word.dutch}</div>
+                                <div class="vocab-english">${word.english}</div>
+                            </div>
+                            <div class="mastery-badge">${Math.round(word.mastery * 100)}%</div>
+                        </div>
+                    `).join('');
+                } else {
+                    vocabList.innerHTML = '<div class="loading">No vocabulary yet. Start learning!</div>';
+                }
+            } catch (error) {
+                console.error('Error loading vocabulary:', error);
+            }
+        }
+
+        async function loadDailyChallenge() {
+            try {
+                const response = await fetch('/api/dutch/daily-challenge');
+                const data = await response.json();
+                const challengeDiv = document.getElementById('daily-challenge');
+                
+                if (data.challenge) {
+                    challengeDiv.innerHTML = `
+                        <h3>${data.challenge.title}</h3>
+                        <p style="margin: 15px 0; opacity: 0.9;">${data.challenge.goal}</p>
+                        <div style="margin-top: 15px;">
+                            <strong>🎁 Reward:</strong> ${data.challenge.reward_points} points
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading challenge:', error);
+            }
+        }
+
+        async function loadExercises() {
+            try {
+                const response = await fetch('/api/dutch/exercises?topic=articles&count=5');
+                const data = await response.json();
+                exercises = data.exercises || [];
+                currentExerciseIndex = 0;
+                displayExercise();
+            } catch (error) {
+                console.error('Error loading exercises:', error);
+            }
+        }
+
+        function displayExercise() {
+            if (exercises.length === 0) return;
+
+            const exercise = exercises[currentExerciseIndex];
+            const container = document.getElementById('exercise-container');
+            
+            container.innerHTML = `
+                <div class="exercise-question">${exercise.question}</div>
+                <div class="exercise-options">
+                    ${exercise.options.map((opt, i) => `
+                        <button class="option-btn" data-option="${opt}" data-correct="${opt === exercise.correct}">
+                            ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+                <div id="exercise-feedback" style="margin-top: 20px;"></div>
+            `;
+
+            container.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', checkAnswer);
+            });
+        }
+
+        function checkAnswer(e) {
+            const btn = e.target;
+            const isCorrect = btn.dataset.correct === 'true';
+            const exercise = exercises[currentExerciseIndex];
+            
+            btn.classList.add(isCorrect ? 'correct' : 'incorrect');
+            
+            const feedback = document.getElementById('exercise-feedback');
+            feedback.innerHTML = `
+                <div class="feedback-message ${isCorrect ? 'feedback-success' : 'feedback-error'}">
+                    ${isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+                    <p style="margin-top: 10px; opacity: 0.9;">${exercise.explanation}</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                currentExerciseIndex++;
+                if (currentExerciseIndex >= exercises.length) {
+                    feedback.innerHTML = '<div class="feedback-message feedback-success">🎉 All exercises completed!</div>';
+                } else {
+                    displayExercise();
+                }
+            }, 2000);
+        }
+
+        async function startConversation() {
+            try {
+                const response = await fetch('/api/dutch/conversation/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level: 'A1', topic: 'daily life' })
+                });
+                const data = await response.json();
+                document.getElementById('conversation-prompt').textContent = data.first_prompt;
+            } catch (error) {
+                console.error('Error starting conversation:', error);
+            }
+        }
+
+        async function submitConversation() {
+            const input = document.getElementById('conversation-input').value;
+            if (!input.trim()) return;
+
+            const feedback = document.getElementById('conversation-feedback');
+            feedback.innerHTML = '<div class="loading">Processing your response...</div>';
+
+            // TODO: Send to AI for feedback
+            setTimeout(() => {
+                feedback.innerHTML = `
+                    <div class="feedback-message feedback-success">
+                        <strong>Great effort!</strong>
+                        <p style="margin-top: 10px;">Your Dutch is improving! Keep practicing.</p>
+                    </div>
+                `;
+            }, 1000);
+        }
+
+        function startSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = 'nl-NL';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('conversation-input').value = transcript;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                };
+
+                recognition.start();
+            } else {
+                alert('Speech recognition is not supported in your browser.');
+            }
+        }
+
+        function showFeedback(type, message) {
+            const feedback = document.createElement('div');
+            feedback.className = `feedback-message feedback-${type} fade-in`;
+            feedback.textContent = message;
+            feedback.style.position = 'fixed';
+            feedback.style.top = '20px';
+            feedback.style.right = '20px';
+            feedback.style.zIndex = '1000';
+            document.body.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

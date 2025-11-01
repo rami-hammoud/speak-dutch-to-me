@@ -280,10 +280,10 @@ class CameraManager:
                 # Pi Camera capture
                 frame = self.picamera.capture_array()
                 if frame is not None:
-                    if len(frame.shape) == 3 and frame.shape[2] == 3:
-                        # Both IMX500 and standard Pi Camera output RGB888
-                        # OpenCV expects BGR, so convert for both
-                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    # IMX500 outputs correct RGB888 - NO conversion needed!
+                    # JPEG encoder handles RGB correctly, don't swap channels
+                    # Diagnostic test showed raw RGB looks perfect
+                    pass  # Use frame as-is (RGB)
                 return frame
                 
             elif self.camera and hasattr(self.camera, 'read'):

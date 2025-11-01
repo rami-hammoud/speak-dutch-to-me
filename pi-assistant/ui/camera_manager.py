@@ -281,13 +281,9 @@ class CameraManager:
                 frame = self.picamera.capture_array()
                 if frame is not None:
                     if len(frame.shape) == 3 and frame.shape[2] == 3:
-                        if config.USE_AI_HAT_CAMERA:
-                            # IMX500: Explicitly swap R and B channels
-                            # The camera outputs with inverted red/blue channels
-                            frame[:, :, [0, 2]] = frame[:, :, [2, 0]]  # Swap R and B
-                        else:
-                            # Standard Pi Camera: Standard RGB to BGR conversion
-                            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                        # Both IMX500 and standard Pi Camera output RGB888
+                        # OpenCV expects BGR, so convert for both
+                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 return frame
                 
             elif self.camera and hasattr(self.camera, 'read'):

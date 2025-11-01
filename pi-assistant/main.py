@@ -56,7 +56,7 @@ class PiAssistant:
         """Setup FastAPI routes"""
         
         @self.app.get("/", response_class=HTMLResponse)
-        async def home(request: Request):
+        async def index(request: Request):
             return self.templates.TemplateResponse(
                 "index.html", 
                 {
@@ -65,6 +65,13 @@ class PiAssistant:
                     "providers": self.ai_service.list_providers(),
                     "current_provider": self.ai_service.current_provider
                 }
+            )
+        
+        @self.app.get("/diagnostic", response_class=HTMLResponse)
+        async def diagnostic(request: Request):
+            return self.templates.TemplateResponse(
+                "diagnostic.html",
+                {"request": request}
             )
         
         @self.app.websocket("/ws")
@@ -115,6 +122,25 @@ class PiAssistant:
                 "providers": self.ai_service.list_providers(),
                 "current": self.ai_service.current_provider
             }
+        
+        @self.app.get("/api/ollama/status")
+        async def ollama_status():
+            """Check Ollama status"""
+            try:
+                import aiohttp
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{config.OLLAMA_HOST}/api/tags", timeout=aiohttp.ClientTimeout(total=5)) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            return {
+                                "status": "online",
+                                "models": [m["name"] for m in data.get("models", [])],
+                                "host": config.OLLAMA_HOST
+                            }
+                        else:
+                            return {"status": "error", "message": f"HTTP {response.status}"}
+            except Exception as e:
+                return {"status": "offline", "error": str(e)}
         
         @self.app.post("/api/audio/start")
         async def start_audio():
@@ -272,25 +298,41 @@ class PiAssistant:
         """Handle incoming WebSocket messages"""
         try:
             message_type = data.get("type")
+            logger.info(f"WebSocket message type: {message_type}")
             
             if message_type == "chat":
-                messages = [Message(**msg) for msg in data.get("messages", [])]
+                messages_data = data.get("messages", [])
+                logger.info(f"Chat request with {len(messages_data)} messages")
+                messages = [Message(**msg) for msg in messages_data]
                 
                 # Send streaming response
                 await websocket.send_json({"type": "chat_start"})
+                logger.info("Streaming chat response...")
                 
                 full_response = ""
-                async for chunk in self.ai_service.stream_chat(messages):
-                    full_response += chunk
+                chunk_count = 0
+                try:
+                    async for chunk in self.ai_service.stream_chat(messages):
+                        chunk_count += 1
+                        full_response += chunk
+                        logger.debug(f"Chunk {chunk_count}: {chunk}")
+                        await websocket.send_json({
+                            "type": "chat_chunk",
+                            "content": chunk
+                        })
+                except Exception as e:
+                    logger.error(f"Error during streaming: {e}", exc_info=True)
                     await websocket.send_json({
-                        "type": "chat_chunk",
-                        "content": chunk
+                        "type": "error",
+                        "message": str(e)
                     })
+                    return
                 
                 await websocket.send_json({
                     "type": "chat_complete",
                     "content": full_response
                 })
+                logger.info(f"Chat complete. Chunks: {chunk_count}, Response length: {len(full_response)}")
             
             elif message_type == "audio_data":
                 # Handle audio data for real-time processing

@@ -152,17 +152,29 @@ class OllamaProvider(AIProvider):
                 f"{self.host}/api/chat",
                 json=payload
             ) as response:
-                async for line in response.content:
-                    try:
-                        data = json.loads(line.decode('utf-8'))
-                        if 'message' in data and 'content' in data['message']:
-                            content = data['message']['content']
-                            if content:
-                                yield content
-                        if data.get('done', False):
-                            break
-                    except json.JSONDecodeError:
-                        continue
+                buffer = ""
+                async for chunk in response.content.iter_any():
+                    buffer += chunk.decode('utf-8')
+                    
+                    # Process complete JSON objects
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        line = line.strip()
+                        
+                        if not line:
+                            continue
+                        
+                        try:
+                            data = json.loads(line)
+                            if 'message' in data and 'content' in data['message']:
+                                content = data['message']['content']
+                                if content:
+                                    yield content
+                            if data.get('done', False):
+                                return
+                        except json.JSONDecodeError as e:
+                            logger.warning(f"Failed to parse JSON: {line[:100]} - {e}")
+                            continue
 
 class AIService:
     """Main AI service that manages providers"""
@@ -196,9 +208,18 @@ class AIService:
     
     async def stream_chat(self, messages: List[Message]) -> AsyncGenerator[str, None]:
         """Stream chat completion"""
-        provider = self.get_provider()
-        async for chunk in provider.stream_chat_completion(messages):
-            yield chunk
+        try:
+            provider = self.get_provider()
+            logger.info(f"Streaming with provider: {self.current_provider}")
+            chunk_count = 0
+            async for chunk in provider.stream_chat_completion(messages):
+                chunk_count += 1
+                logger.info(f"AIService yielding chunk {chunk_count}: {chunk[:50]}")
+                yield chunk
+            logger.info(f"AIService stream complete. Total chunks: {chunk_count}")
+        except Exception as e:
+            logger.error(f"Error in stream_chat: {e}", exc_info=True)
+            raise
     
     def list_providers(self) -> List[str]:
         """List available providers"""

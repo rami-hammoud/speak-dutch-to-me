@@ -147,13 +147,25 @@ class OllamaProvider(AIProvider):
             "stream": True
         }
         
+        logger.info(f"Ollama stream request to {self.host}/api/chat with model {self.model}")
+        logger.info(f"Messages: {[{'role': m.role, 'content': m.content[:50]} for m in messages]}")
+        
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.host}/api/chat",
                 json=payload
             ) as response:
+                logger.info(f"Ollama response status: {response.status}")
+                
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"Ollama streaming error: {response.status} - {error_text}")
+                    raise Exception(f"Ollama streaming error: {response.status}")
+                
                 buffer = ""
+                chunk_num = 0
                 async for chunk in response.content.iter_any():
+                    chunk_num += 1
                     buffer += chunk.decode('utf-8')
                     
                     # Process complete JSON objects
@@ -166,15 +178,21 @@ class OllamaProvider(AIProvider):
                         
                         try:
                             data = json.loads(line)
+                            logger.debug(f"Ollama chunk {chunk_num}: {data}")
+                            
                             if 'message' in data and 'content' in data['message']:
                                 content = data['message']['content']
                                 if content:
+                                    logger.info(f"Yielding content: {content[:50]}")
                                     yield content
                             if data.get('done', False):
+                                logger.info(f"Ollama streaming done. Total chunks: {chunk_num}")
                                 return
                         except json.JSONDecodeError as e:
                             logger.warning(f"Failed to parse JSON: {line[:100]} - {e}")
                             continue
+                
+                logger.info(f"Ollama stream ended. Total chunks: {chunk_num}")
 
 class AIService:
     """Main AI service that manages providers"""

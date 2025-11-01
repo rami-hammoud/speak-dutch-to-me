@@ -575,7 +575,9 @@
             };
             
             ws.onmessage = (event) => {
+                console.log('[DEBUG] WebSocket message received:', event.data);
                 const data = JSON.parse(event.data);
+                console.log('[DEBUG] Parsed data:', data);
                 handleMessage(data);
             };
             
@@ -592,25 +594,33 @@
         }
 
         function handleMessage(data) {
+            console.log('[DEBUG] handleMessage called with type:', data.type);
             switch(data.type) {
                 case 'chat_start':
+                    console.log('[DEBUG] Chat started');
                     showTyping(true);
                     break;
                 
                 case 'chat_chunk':
+                    console.log('[DEBUG] Chat chunk:', data.content);
                     appendToLastMessage(data.content);
                     break;
                 
                 case 'chat_complete':
+                    console.log('[DEBUG] Chat complete');
                     showTyping(false);
                     messageCount++;
                     updateStats();
                     break;
                 
                 case 'error':
+                    console.error('[DEBUG] Error:', data.message);
                     showError(data.message);
                     showTyping(false);
                     break;
+                
+                default:
+                    console.warn('[DEBUG] Unknown message type:', data.type);
             }
         }
 
@@ -618,7 +628,13 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
-            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+            console.log('[DEBUG] sendMessage called, text:', text);
+            console.log('[DEBUG] WebSocket state:', ws ? ws.readyState : 'null');
+            
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('[DEBUG] Cannot send:', !text ? 'no text' : 'websocket not ready');
+                return;
+            }
             
             // Remove empty state
             if (!hasMessages) {
@@ -632,12 +648,15 @@
             
             // Get chat history
             const messages = getChatHistory();
+            console.log('[DEBUG] Sending messages:', messages);
             
             // Send via WebSocket
-            ws.send(JSON.stringify({
+            const payload = {
                 type: 'chat',
                 messages: messages
-            }));
+            };
+            console.log('[DEBUG] WebSocket payload:', payload);
+            ws.send(JSON.stringify(payload));
             
             // Add empty assistant message
             addMessage('assistant', '');
@@ -761,27 +780,47 @@
             const img = document.getElementById('cameraFrame');
             const offline = document.getElementById('cameraOffline');
             
+            let frameCount = 0;
+            let errorCount = 0;
+            
             function updateFrame() {
                 fetch('/api/camera/frame')
                     .then(r => r.json())
                     .then(data => {
+                        frameCount++;
+                        
+                        // Only log every 30th frame or on errors to reduce console spam
+                        if (frameCount % 30 === 0) {
+                            console.log(`[DEBUG] Camera: ${frameCount} frames received`);
+                        }
+                        
                         if (data.success && data.frame) {
                             img.src = 'data:image/jpeg;base64,' + data.frame;
                             img.style.display = 'block';
                             offline.style.display = 'none';
+                            errorCount = 0;
                         } else {
+                            errorCount++;
+                            if (errorCount === 1) {
+                                console.warn('[DEBUG] Camera frame not available:', data);
+                            }
                             img.style.display = 'none';
                             offline.style.display = 'flex';
                         }
                     })
-                    .catch(() => {
+                    .catch(err => {
+                        errorCount++;
+                        if (errorCount === 1) {
+                            console.error('[DEBUG] Camera fetch error:', err);
+                        }
                         img.style.display = 'none';
                         offline.style.display = 'flex';
                     });
             }
             
+            // Update every 100ms for ~10 FPS (smoother but not too demanding)
             updateFrame();
-            setInterval(updateFrame, 500);
+            setInterval(updateFrame, 100);
         }
     </script>
 </body>

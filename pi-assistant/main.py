@@ -58,7 +58,7 @@ class PiAssistant:
         @self.app.get("/", response_class=HTMLResponse)
         async def index(request: Request):
             return self.templates.TemplateResponse(
-                "index.html", 
+                "index_new.html", 
                 {
                     "request": request,
                     "config": config,

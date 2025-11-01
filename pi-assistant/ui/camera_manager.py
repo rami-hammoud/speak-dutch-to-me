@@ -301,7 +301,8 @@ class CameraManager:
                 # Encode frame as JPEG and convert to base64
                 _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
                 frame_base64 = base64.b64encode(buffer).decode('utf-8')
-                return f"data:image/jpeg;base64,{frame_base64}"
+                # Return just the base64 string, frontend will add data URI prefix
+                return frame_base64
             
             return frame
             

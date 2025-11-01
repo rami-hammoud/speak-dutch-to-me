@@ -43,9 +43,9 @@ chmod +x setup_bookworm.sh
 - ✅ Setup Python environment
 - ✅ Install Ollama + llama3.2:3b
 - ✅ Configure audio system
-- ✅ Create virtual camera
 - ✅ Initialize database
 - ✅ Create `.env` configuration
+- ✅ Enable auto-start on boot (systemd)
 
 ---
 
@@ -66,18 +66,32 @@ nano .env
 
 **Note:** The assistant works fully offline with Ollama, API keys are optional!
 
-### 2. Start the Assistant
+### 2. Reboot to Enable Auto-Start
 
 ```bash
-cd ~/workspace/speak-dutch-to-me/pi-assistant
-./start_assistant.sh
+sudo reboot
 ```
+
+**After reboot, services start automatically!** No need to manually start anything.
 
 ### 3. Access the Web Interface
 
 Open your browser to:
 - **Main Dashboard:** `http://YOUR_PI_IP:8080`
 - **Dutch Learning:** `http://YOUR_PI_IP:8080/dutch-learning`
+
+### 4. Manage Services
+
+```bash
+# Check status
+sudo systemctl status pi-assistant
+
+# View live logs
+sudo journalctl -u pi-assistant -f
+
+# Restart if needed
+sudo systemctl restart pi-assistant
+```
 
 Replace `YOUR_PI_IP` with your Pi's IP address (shown when starting).
 
@@ -122,7 +136,7 @@ Should show:
 - [x] Ollama service running
 - [x] Audio system configured
 - [x] Database initialized
-- [x] Virtual camera available
+- [x] Direct camera access (no virtual camera)
 
 ---
 

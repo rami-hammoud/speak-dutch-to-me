@@ -122,7 +122,7 @@ speak-dutch-to-me/
 ### Hardware Integration (95% Complete)
 - ✅ Camera manager (Picamera2)
 - ✅ Audio manager (PyAudio, ALSA)
-- ✅ Virtual camera (v4l2loopback for Zoom/Meet)
+- ✅ Direct camera access (v4l2loopback removed for better performance)
 - ✅ GPIO control (MCP tools)
 - ⚠️ Camera reliability (occasional "device busy" errors)
 

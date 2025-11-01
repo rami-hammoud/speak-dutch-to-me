@@ -40,7 +40,7 @@ chmod +x setup_trixie.sh
 - [ ] Camera drivers (libcamera, picamera2)
 - [ ] Audio system (ALSA, PulseAudio)
 - [ ] Ollama + llama3.2:3b model
-- [ ] Virtual camera (v4l2loopback)
+- [x] ~~Virtual camera~~ (removed for better performance)
 - [ ] Python packages
 - [ ] Database initialization
 
@@ -105,7 +105,7 @@ sudo reboot
 ./status_assistant.sh
 ```
 - [ ] System boots successfully
-- [ ] Virtual camera loaded (/dev/video10)
+- [x] ~~Virtual camera~~ (removed - direct camera access instead)
 - [ ] Services start automatically (if enabled)
 
 ## Post-Deployment

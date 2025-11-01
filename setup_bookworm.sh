@@ -292,34 +292,10 @@ install_hailo_support() {
 }
 
 # ============================================================================
-# STEP 5: Setup Virtual Camera
-# ============================================================================
-setup_virtual_camera() {
-    step "$step_num/10: Setting Up Virtual Camera for Zoom/Meet"
-    ((step_num++))
-    
-    log "Installing v4l2loopback..."
-    sudo apt install -y v4l2loopback-dkms v4l2loopback-utils
-    
-    log "Configuring v4l2loopback to load at boot..."
-    echo "v4l2loopback" | sudo tee /etc/modules-load.d/v4l2loopback.conf >/dev/null
-    
-    sudo mkdir -p /etc/modprobe.d
-    echo "options v4l2loopback devices=1 video_nr=10 card_label=\"PiAssistantCam\" exclusive_caps=1" | \
-        sudo tee /etc/modprobe.d/v4l2loopback.conf >/dev/null
-    
-    log "Loading v4l2loopback kernel module..."
-    sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="PiAssistantCam" exclusive_caps=1 || \
-        warn "v4l2loopback failed to load, will retry after reboot"
-    
-    success "Virtual camera configured at /dev/video10"
-}
-
-# ============================================================================
-# STEP 6: Install Ollama (Local LLM)
+# STEP 5: Install Ollama (Local LLM)
 # ============================================================================
 install_ollama() {
-    step "$step_num/10: Installing Ollama (Local LLM)"
+    step "$step_num/9: Installing Ollama (Local LLM)"
     ((step_num++))
     
     if [[ "$INSTALL_OLLAMA" == "false" ]]; then
@@ -363,10 +339,10 @@ install_ollama() {
 }
 
 # ============================================================================
-# STEP 7: Setup Python Virtual Environment
+# STEP 6: Setup Python Virtual Environment
 # ============================================================================
 setup_python_environment() {
-    step "$step_num/10: Setting Up Python Virtual Environment"
+    step "$step_num/9: Setting Up Python Virtual Environment"
     ((step_num++))
     
     cd "$PROJECT_DIR"
@@ -420,10 +396,10 @@ setup_python_environment() {
 }
 
 # ============================================================================
-# STEP 8: Configure Audio System
+# STEP 7: Configure Audio System
 # ============================================================================
 configure_audio() {
-    step "$step_num/10: Configuring Audio System"
+    step "$step_num/9: Configuring Audio System"
     ((step_num++))
     
     log "Enabling PulseAudio for user..."
@@ -449,10 +425,10 @@ ALSA_CONFIG
 }
 
 # ============================================================================
-# STEP 9: Setup Database and Seed Data
+# STEP 8: Setup Database and Seed Data
 # ============================================================================
 setup_database() {
-    step "$step_num/10: Setting Up Database and Seed Data"
+    step "$step_num/9: Setting Up Database and Seed Data"
     ((step_num++))
     
     cd "$PROJECT_DIR"
@@ -478,10 +454,10 @@ setup_database() {
 }
 
 # ============================================================================
-# STEP 10: Create Configuration Files
+# STEP 9: Create Configuration Files and Enable Auto-Start
 # ============================================================================
 create_configuration() {
-    step "$step_num/10: Creating Configuration Files"
+    step "$step_num/9: Creating Configuration Files"
     ((step_num++))
     
     cd "$PROJECT_DIR"
@@ -539,23 +515,14 @@ ENV_CONFIG
 }
 
 # ============================================================================
-# Optional: Create Systemd Services
+# Create Systemd Services for Auto-Start on Boot
 # ============================================================================
 create_systemd_services() {
-    if [[ "$ENABLE_SYSTEMD" == "true" ]] || [[ "$NON_INTERACTIVE" == "false" ]]; then
-        echo ""
-        log "Systemd Service Setup (Optional)"
-        
-        if [[ "$NON_INTERACTIVE" == "false" ]]; then
-            read -p "Do you want to create systemd services for auto-start? [y/N]: " -n 1 -r
-            echo
-            [[ ! $REPLY =~ ^[Yy]$ ]] && return 0
-        elif [[ "$ENABLE_SYSTEMD" != "true" ]]; then
-            return 0
-        fi
-        
-        log "Creating pi-assistant systemd service..."
-        sudo tee /etc/systemd/system/pi-assistant.service >/dev/null <<SERVICE
+    echo ""
+    log "Creating systemd services for automatic startup on boot..."
+    
+    log "Creating pi-assistant systemd service..."
+    sudo tee /etc/systemd/system/pi-assistant.service >/dev/null <<SERVICE
 [Unit]
 Description=Dutch Learning AI Assistant
 After=network.target ollama.service
@@ -575,26 +542,16 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 SERVICE
-        
-        log "Reloading systemd daemon..."
-        sudo systemctl daemon-reload
-        
-        if [[ "$ENABLE_SYSTEMD" == "true" ]] || [[ "$NON_INTERACTIVE" == "false" ]]; then
-            if [[ "$NON_INTERACTIVE" == "false" ]]; then
-                read -p "Enable service to start on boot? [y/N]: " -n 1 -r
-                echo
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
-                    sudo systemctl enable pi-assistant.service
-                    success "Service enabled for auto-start"
-                fi
-            elif [[ "$ENABLE_SYSTEMD" == "true" ]]; then
-                sudo systemctl enable pi-assistant.service
-                success "Service enabled for auto-start"
-            fi
-        fi
-        
-        success "Systemd service created"
-    fi
+    
+    log "Reloading systemd daemon..."
+    sudo systemctl daemon-reload
+    
+    log "Enabling services to start on boot..."
+    sudo systemctl enable ollama.service || warn "Ollama service already enabled"
+    sudo systemctl enable pi-assistant.service
+    
+    success "Services configured to start automatically on boot"
+    log "Ollama and Pi Assistant will start automatically after reboot"
 }
 
 # ============================================================================
@@ -617,29 +574,26 @@ final_steps() {
     
     log "📋 Next steps:"
     echo ""
-    echo "  1. Review configuration:"
+    echo "  1. Review configuration (optional):"
     echo "     nano $PROJECT_DIR/.env"
     echo ""
-    echo "  2. Start the assistant:"
-    echo "     cd $PROJECT_DIR"
-    echo "     ./start_assistant.sh"
+    echo "  2. Reboot to enable auto-start services:"
+    echo "     sudo reboot"
     echo ""
-    echo "  3. Access the web interface:"
+    echo "  3. After reboot, access the web interface:"
     echo "     http://$IP_ADDR:8080"
     echo "     http://$IP_ADDR:8080/dutch-learning"
     echo ""
     
-    if ! lsmod | grep -q v4l2loopback; then
-        warn "⚠️  Virtual camera not loaded - reboot recommended:"
-        echo "     sudo reboot"
-        echo ""
-    fi
+    success "✨ Services will start automatically on boot!"
+    echo ""
     
     log "🔧 Useful commands:"
-    echo "  • Start: cd $PROJECT_DIR && ./start_assistant.sh"
-    echo "  • Logs: tail -f $PROJECT_DIR/logs/assistant.log"
-    echo "  • Status: sudo systemctl status pi-assistant"
-    echo "  • Ollama: ollama list"
+    echo "  • Status:  sudo systemctl status pi-assistant"
+    echo "  • Logs:    sudo journalctl -u pi-assistant -f"
+    echo "  • Restart: sudo systemctl restart pi-assistant"
+    echo "  • Stop:    sudo systemctl stop pi-assistant"
+    echo "  • Ollama:  ollama list"
     echo ""
     
     success "Happy learning Dutch! 🇳🇱"
@@ -657,7 +611,6 @@ main() {
     install_base_dependencies
     install_pi_hardware
     install_hailo_support
-    setup_virtual_camera
     install_ollama
     setup_python_environment
     configure_audio

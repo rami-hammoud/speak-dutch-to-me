@@ -138,9 +138,8 @@ class CameraManager:
                             hflip=1 if config.CAMERA_HFLIP else 0
                         )
                     
-                    # Choose format based on camera type
-                    # IMX500 AI Camera may need BGR888 or different format handling
-                    pixel_format = "BGR888" if config.USE_AI_HAT_CAMERA else "RGB888"
+                    # Use RGB888 for all cameras, handle conversion in capture
+                    pixel_format = "RGB888"
                     
                     camera_config = self.picamera.create_preview_configuration(
                         main={"size": (self.width, self.height), "format": pixel_format},
@@ -282,12 +281,13 @@ class CameraManager:
                 frame = self.picamera.capture_array()
                 if frame is not None:
                     if len(frame.shape) == 3 and frame.shape[2] == 3:
-                        # IMX500 is configured for BGR888, so frame is already in BGR
-                        # Standard Pi Camera would be RGB888 and needs conversion
-                        if not config.USE_AI_HAT_CAMERA:
-                            # Standard Pi Camera: Convert RGB to BGR for OpenCV
+                        if config.USE_AI_HAT_CAMERA:
+                            # IMX500: Explicitly swap R and B channels
+                            # The camera outputs with inverted red/blue channels
+                            frame[:, :, [0, 2]] = frame[:, :, [2, 0]]  # Swap R and B
+                        else:
+                            # Standard Pi Camera: Standard RGB to BGR conversion
                             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                        # else: IMX500 is already BGR888, use as-is
                 return frame
                 
             elif self.camera and hasattr(self.camera, 'read'):

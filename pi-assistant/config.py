@@ -21,7 +21,7 @@ class Config:
     
     # Ollama settings
     OLLAMA_HOST: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.2"
+    OLLAMA_MODEL: str = "llama3.2:3b"
     
     # MCP server settings
     MCP_HOST: str = "localhost"

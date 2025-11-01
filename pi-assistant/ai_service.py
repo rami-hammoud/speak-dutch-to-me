@@ -123,16 +123,22 @@ class OllamaProvider(AIProvider):
             "stream": False
         }
         
+        url = f"{self.host}/api/chat"
+        logger.info(f"Ollama chat request to {url} with model {self.model}")
+        
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{self.host}/api/chat",
-                json=payload
+                url,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=300)
             ) as response:
                 if response.status != 200:
                     error_text = await response.text()
+                    logger.error(f"Ollama API error {response.status}: {error_text}")
                     raise Exception(f"Ollama API error: {response.status} - {error_text}")
                 
                 result = await response.json()
+                logger.info(f"Ollama response received: {result.get('message', {}).get('content', '')[:100]}")
                 return ChatResponse(
                     content=result["message"]["content"],
                     model=self.model,
@@ -147,13 +153,15 @@ class OllamaProvider(AIProvider):
             "stream": True
         }
         
-        logger.info(f"Ollama stream request to {self.host}/api/chat with model {self.model}")
-        logger.info(f"Messages: {[{'role': m.role, 'content': m.content[:50]} for m in messages]}")
+        url = f"{self.host}/api/chat"
+        logger.info(f"Ollama stream request to {url} with model {self.model}")
+        logger.info(f"Payload: {json.dumps(payload, indent=2)}")
         
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{self.host}/api/chat",
-                json=payload
+                url,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=300)
             ) as response:
                 logger.info(f"Ollama response status: {response.status}")
                 

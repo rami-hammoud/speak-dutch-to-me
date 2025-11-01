@@ -148,8 +148,25 @@ class CameraManager:
                     # Start camera (no on-screen preview)
                     self.picamera.start()
 
-                    # Allow a short warm-up
-                    time.sleep(2)
+                    # Set white balance and other controls for better color accuracy
+                    try:
+                        # Enable auto white balance (AWB)
+                        awb_mode = config.CAMERA_AWB_MODE if hasattr(config, 'CAMERA_AWB_MODE') else 0
+                        self.picamera.set_controls({
+                            "AwbEnable": True,           # Enable auto white balance
+                            "AwbMode": awb_mode,         # AWB mode from config (0=auto, 1=tungsten, etc.)
+                            "AeEnable": True,            # Enable auto exposure
+                            "Brightness": 0.0,           # 0 = neutral
+                            "Contrast": 1.0,             # 1.0 = normal
+                            "Saturation": 1.0,           # 1.0 = normal (not oversaturated)
+                        })
+                        awb_modes = {0: "auto", 1: "tungsten", 2: "fluorescent", 3: "indoor", 4: "daylight", 5: "cloudy"}
+                        logger.info(f"Camera controls set: AWB mode={awb_modes.get(awb_mode, awb_mode)}, neutral color settings")
+                    except Exception as e:
+                        logger.warning(f"Could not set camera controls: {e}")
+
+                    # Allow longer warm-up for AWB to adjust
+                    time.sleep(3)
 
                     # Set main camera reference
                     self.camera = self.picamera

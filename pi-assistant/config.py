@@ -39,6 +39,7 @@ class Config:
     CAMERA_HFLIP: bool = True  # Set to True to flip camera horizontally
     FORCE_USB_CAMERA: bool = False  # Set to True to force USB camera over Pi Camera
     USE_AI_HAT_CAMERA: bool = True  # Set to True to enable AI HAT+ (IMX500) camera
+    CAMERA_AWB_MODE: int = 0  # Auto White Balance: 0=auto, 1=tungsten, 2=fluorescent, 3=indoor, 4=daylight, 5=cloudy
     
     # Display settings
     FULLSCREEN: bool = True

@@ -35,7 +35,7 @@ ssh -t "$PI_USER@$PI_HOST" bash << 'EOF'
     echo ""
     echo "🔊 Checking audio system packages..."
     sudo apt-get update -qq
-    sudo apt-get install -y -qq portaudio19-dev python3-pyaudio espeak espeak-ng || true
+    sudo apt-get install -y -qq portaudio19-dev python3-pyaudio espeak espeak-ng mpg123 sox || true
     
     # Try to install PyAudio (might fail, that's ok)
     pip install pyaudio || echo "⚠️  PyAudio install failed (ok if system package exists)"
@@ -132,8 +132,22 @@ PYTEST
     
     echo ""
     echo "📁 Generated test files:"
-    ls -lh /tmp/test_*.mp3 2>/dev/null || echo "  (no test files in /tmp)"
-    ls -lh *.mp3 2>/dev/null || echo "  (no test files in current dir)"
+    echo "  Files in /tmp:"
+    ls -lh /tmp/test_*.mp3 2>/dev/null || echo "    (none)"
+    echo "  Files in current directory:"
+    ls -lh *.mp3 2>/dev/null || echo "    (none)"
+    
+    echo ""
+    echo "🔊 Testing audio playback..."
+    if command -v mpg123 &> /dev/null; then
+        echo "  Playing test_en.mp3 with mpg123..."
+        mpg123 -q /tmp/test_en.mp3 2>/dev/null && echo "  ✅ English audio played successfully!" || echo "  ⚠️  Audio playback had issues"
+    elif command -v ffplay &> /dev/null; then
+        echo "  Playing with ffplay..."
+        ffplay -nodisp -autoexit /tmp/test_en.mp3 2>/dev/null && echo "  ✅ Audio played!" || echo "  ⚠️  Audio playback had issues"
+    else
+        echo "  ⚠️  No MP3 player found (install mpg123 or ffplay)"
+    fi
     
     echo ""
     echo "🔄 Restarting assistant service..."
@@ -155,8 +169,16 @@ EOF
 echo ""
 echo "🎉 Done! Voice system is deployed and tested on the Pi."
 echo ""
-echo "📝 Next steps:"
-echo "  1. Check the test output above for any issues"
-echo "  2. Test audio playback: ssh $PI_USER@$PI_HOST 'aplay /tmp/test_en.mp3'"
-echo "  3. Check generated files: ssh $PI_USER@$PI_HOST 'ls -lh /tmp/test_*.mp3'"
-echo "  4. View logs: ssh $PI_USER@$PI_HOST 'sudo journalctl -u pi-assistant -f'"
+echo "📝 To play the audio files manually:"
+echo "  # Play MP3 files:"
+echo "  ssh $PI_USER@$PI_HOST 'mpg123 /tmp/test_en.mp3'"
+echo "  ssh $PI_USER@$PI_HOST 'mpg123 /tmp/test_nl.mp3'"
+echo ""
+echo "  # Or convert to WAV and use aplay:"
+echo "  ssh $PI_USER@$PI_HOST 'ffmpeg -i /tmp/test_en.mp3 /tmp/test_en.wav && aplay /tmp/test_en.wav'"
+echo ""
+echo "📁 View all generated files:"
+echo "  ssh $PI_USER@$PI_HOST 'ls -lh /tmp/test_*.mp3 ~/workspace/speak-dutch-to-me/pi-assistant/*.mp3'"
+echo ""
+echo "📊 View logs:"
+echo "  ssh $PI_USER@$PI_HOST 'sudo journalctl -u pi-assistant -f'"

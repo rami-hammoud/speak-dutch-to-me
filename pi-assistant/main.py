@@ -18,6 +18,11 @@ from mcp.server import MCPServer
 from ui.audio_manager import AudioManager
 from ui.camera_manager import CameraManager
 
+# Voice command system imports
+from services.voice_command_router import create_voice_command_router, VoiceCommandRouter
+from services.voice_recognition_service import create_voice_service
+from services.tts_service import create_tts_service
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO if config.DEBUG else logging.WARNING,
@@ -39,6 +44,11 @@ class PiAssistant:
         self.mcp_server = MCPServer()
         self.audio_manager = AudioManager()
         self.camera_manager = CameraManager()
+        
+        # Voice command system (initialized in async startup)
+        self.voice_router: Optional[VoiceCommandRouter] = None
+        self.voice_recognition = None
+        self.tts_service = None
         
         # Active connections for WebSocket
         self.connections = set()
@@ -201,6 +211,14 @@ class PiAssistant:
                 {"request": request}
             )
         
+        @self.app.get("/voice-chat", response_class=HTMLResponse)
+        async def voice_chat_page(request: Request):
+            """Voice chat interface"""
+            return self.templates.TemplateResponse(
+                "voice_chat.html",
+                {"request": request}
+            )
+        
         @self.app.get("/api/dutch/stats")
         async def get_dutch_stats():
             """Get Dutch learning statistics"""
@@ -334,6 +352,86 @@ class PiAssistant:
                 })
                 logger.info(f"Chat complete. Chunks: {chunk_count}, Response length: {len(full_response)}")
             
+            elif message_type == "voice_command":
+                # Handle voice command
+                audio_data = data.get("audio_data")
+                language = data.get("language", "en-US")
+                
+                logger.info("Processing voice command...")
+                await websocket.send_json({"type": "voice_processing", "status": "recognizing"})
+                
+                if not self.voice_router or not self.voice_recognition:
+                    await websocket.send_json({
+                        "type": "voice_error",
+                        "message": "Voice system not initialized"
+                    })
+                    return
+                
+                try:
+                    # Recognize speech
+                    text = await self.voice_recognition.recognize_from_bytes(
+                        audio_data.encode() if isinstance(audio_data, str) else audio_data,
+                        language
+                    )
+                    
+                    if not text:
+                        await websocket.send_json({
+                            "type": "voice_result",
+                            "text": "",
+                            "message": "I didn't catch that. Could you repeat?",
+                            "success": False
+                        })
+                        return
+                    
+                    logger.info(f"Recognized: {text}")
+                    await websocket.send_json({
+                        "type": "voice_recognized",
+                        "text": text
+                    })
+                    
+                    # Parse and execute command
+                    await websocket.send_json({"type": "voice_processing", "status": "parsing"})
+                    command = await self.voice_router.parse_command(text)
+                    
+                    await websocket.send_json({
+                        "type": "voice_parsed",
+                        "intent": command.intent.value,
+                        "confidence": command.confidence,
+                        "agent": command.agent,
+                        "action": command.action
+                    })
+                    
+                    # Execute
+                    await websocket.send_json({"type": "voice_processing", "status": "executing"})
+                    response = await self.voice_router.execute_command(command)
+                    
+                    # Send result
+                    await websocket.send_json({
+                        "type": "voice_result",
+                        "text": text,
+                        "message": response.message,
+                        "success": response.success,
+                        "data": response.data,
+                        "intent": command.intent.value
+                    })
+                    
+                    # Generate speech response
+                    if response.speak and self.tts_service:
+                        await websocket.send_json({"type": "voice_processing", "status": "speaking"})
+                        audio_file = await self.tts_service.speak(response.message, language)
+                        if audio_file:
+                            await websocket.send_json({
+                                "type": "voice_audio",
+                                "audio_file": str(audio_file)
+                            })
+                    
+                except Exception as e:
+                    logger.error(f"Voice command error: {e}", exc_info=True)
+                    await websocket.send_json({
+                        "type": "voice_error",
+                        "message": f"Error processing command: {str(e)}"
+                    })
+            
             elif message_type == "audio_data":
                 # Handle audio data for real-time processing
                 audio_data = data.get("data")
@@ -390,6 +488,16 @@ class PiAssistant:
         await self.audio_manager.initialize()
         await self.camera_manager.initialize()
         
+        # Initialize voice command services
+        try:
+            logger.info("Initializing voice services...")
+            self.voice_recognition = await create_voice_service()
+            self.tts_service = await create_tts_service()
+            self.voice_router = await create_voice_command_router(self.ai_service, self.mcp_server)
+            logger.info("Voice command services initialized")
+        except Exception as e:
+            logger.warning(f"Voice command services initialization failed: {e}")
+        
         logger.info("Pi Assistant initialization complete")
     
     async def cleanup(self):
@@ -407,6 +515,8 @@ class PiAssistant:
         await self.mcp_server.cleanup()
         await self.audio_manager.cleanup()
         await self.camera_manager.cleanup()
+        
+        # Cleanup voice command services (no cleanup needed for these services)
         
         logger.info("Pi Assistant cleanup complete")
 

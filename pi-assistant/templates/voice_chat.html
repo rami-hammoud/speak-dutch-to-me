@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Chat - Pi Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .voice-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .voice-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .voice-header h1 {
+            font-size: 2.5em;
+            margin: 0 0 10px 0;
+        }
+
+        .voice-header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .voice-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mic-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        .mic-button.recording {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .mic-button.processing {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 500;
+            min-height: 30px;
+            text-align: center;
+        }
+
+        .chat-history {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .chat-message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-message.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: 40px;
+        }
+
+        .chat-message.assistant {
+            background: #f0f0f0;
+            color: #333;
+            margin-right: 40px;
+        }
+
+        .chat-message.system {
+            background: #fff3cd;
+            color: #856404;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .message-content {
+            font-size: 1.05em;
+            line-height: 1.6;
+        }
+
+        .intent-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .intent-shopping { background: #ffd700; color: #333; }
+        .intent-dutch_learning { background: #ff6b6b; color: white; }
+        .intent-home_automation { background: #4ecdc4; color: white; }
+        .intent-camera { background: #95e1d3; color: #333; }
+        .intent-personal_assistant { background: #6c5ce7; color: white; }
+
+        .language-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .language-btn {
+            padding: 10px 20px;
+            border: 2px solid white;
+            background: transparent;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .language-btn.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .language-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .agent-status {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .agent-indicator {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .agent-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .audio-player {
+            margin-top: 10px;
+        }
+
+        .clear-btn {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="voice-container">
+        <div class="voice-header">
+            <h1>🎙️ Voice Assistant</h1>
+            <p>Press the microphone and speak your command</p>
+        </div>
+
+        <div class="voice-controls">
+            <button id="micButton" class="mic-button" title="Click to record">
+                🎤
+            </button>
+            <div class="status-text" id="statusText">Ready to listen</div>
+            
+            <div class="language-selector">
+                <button class="language-btn active" data-lang="en-US">🇺🇸 English</button>
+                <button class="language-btn" data-lang="nl-NL">🇳🇱 Dutch</button>
+            </div>
+
+            <button class="clear-btn" id="clearBtn">Clear History</button>
+        </div>
+
+        <div class="chat-history" id="chatHistory">
+            <div class="chat-message system">
+                Welcome! I can help you with shopping, Dutch learning, calendar events, and more.
+                Try saying things like:
+                <ul style="text-align: left; margin-top: 10px;">
+                    <li>"Find me a wireless keyboard"</li>
+                    <li>"What's Dutch for hello?"</li>
+                    <li>"What's on my calendar today?"</li>
+                    <li>"Add a meeting for tomorrow at 2 PM"</li>
+                    <li>"Take a picture"</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="agent-status">
+            <div class="agent-indicator">
+                <span class="agent-dot"></span>
+                Shopping
+            </div>
+            <div class="agent-indicator">
+                <span class="agent-dot"></span>
+                Dutch Learning
+            </div>
+            <div class="agent-indicator">
+                <span class="agent-dot"></span>
+                Calendar
+            </div>
+            <div class="agent-indicator">
+                <span class="agent-dot"></span>
+                Camera
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let currentLanguage = 'en-US';
+
+        const micButton = document.getElementById('micButton');
+        const statusText = document.getElementById('statusText');
+        const chatHistory = document.getElementById('chatHistory');
+        const clearBtn = document.getElementById('clearBtn');
+        const languageBtns = document.querySelectorAll('.language-btn');
+
+        // WebSocket connection
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                updateStatus('Connected and ready');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('Connection error');
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateStatus('Disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'voice_processing':
+                    updateStatus(`Processing: ${data.status}...`);
+                    micButton.className = 'mic-button processing';
+                    break;
+
+                case 'voice_recognized':
+                    addMessage(data.text, 'user');
+                    break;
+
+                case 'voice_parsed':
+                    updateStatus(`Intent: ${data.intent} (${Math.round(data.confidence * 100)}%)`);
+                    break;
+
+                case 'voice_result':
+                    if (data.text) {
+                        // User message already added in voice_recognized
+                    }
+                    addMessage(data.message, 'assistant', data.intent);
+                    micButton.className = 'mic-button';
+                    updateStatus('Ready to listen');
+                    isRecording = false;
+                    break;
+
+                case 'voice_audio':
+                    // Play audio response
+                    playAudio(data.audio_file);
+                    break;
+
+                case 'voice_error':
+                    addMessage(data.message, 'system');
+                    micButton.className = 'mic-button';
+                    updateStatus('Error occurred');
+                    isRecording = false;
+                    break;
+            }
+        }
+
+        function updateStatus(message) {
+            statusText.textContent = message;
+        }
+
+        function addMessage(content, sender, intent = null) {
+            const message = document.createElement('div');
+            message.className = `chat-message ${sender}`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            
+            const senderLabel = document.createElement('span');
+            senderLabel.textContent = sender === 'user' ? 'You' : 
+                                     sender === 'assistant' ? 'Assistant' : 'System';
+            header.appendChild(senderLabel);
+            
+            if (intent) {
+                const badge = document.createElement('span');
+                badge.className = `intent-badge intent-${intent}`;
+                badge.textContent = intent.replace('_', ' ');
+                header.appendChild(badge);
+            }
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = content;
+            
+            message.appendChild(header);
+            message.appendChild(messageContent);
+            chatHistory.appendChild(message);
+            
+            // Scroll to bottom
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = () => {
+                        const base64Audio = reader.result.split(',')[1];
+                        sendVoiceCommand(base64Audio);
+                    };
+
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                micButton.className = 'mic-button recording';
+                updateStatus('Recording... (click again to stop)');
+            } catch (error) {
+                console.error('Microphone error:', error);
+                addMessage('Could not access microphone. Please grant permission.', 'system');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                updateStatus('Processing...');
+            }
+        }
+
+        function sendVoiceCommand(audioData) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'voice_command',
+                    audio_data: audioData,
+                    language: currentLanguage
+                }));
+            } else {
+                addMessage('Not connected to server', 'system');
+                micButton.className = 'mic-button';
+                updateStatus('Disconnected');
+            }
+        }
+
+        function playAudio(audioFile) {
+            // In a real implementation, you'd fetch and play the audio file
+            console.log('Playing audio:', audioFile);
+        }
+
+        // Event listeners
+        micButton.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            const systemMessage = chatHistory.querySelector('.chat-message.system');
+            chatHistory.innerHTML = '';
+            if (systemMessage) {
+                chatHistory.appendChild(systemMessage.cloneNode(true));
+            }
+        });
+
+        languageBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                languageBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLanguage = btn.dataset.lang;
+                updateStatus(`Language: ${btn.textContent}`);
+            });
+        });
+
+        // Initialize
+        connectWebSocket();
+
+        // Keyboard shortcut: Space bar to record
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !isRecording && e.target === document.body) {
+                e.preventDefault();
+                startRecording();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && isRecording) {
+                e.preventDefault();
+                stopRecording();
+            }
+        });
+    </script>
+</body>
+</html>

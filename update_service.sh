@@ -3,7 +3,11 @@
 
 echo "Updating Pi Assistant service to use virtual environment..."
 
-# Create new service file
+# Detect the current user
+CURRENT_USER=$(whoami)
+PROJECT_DIR=$(pwd)
+
+# Create new service file with correct user and paths
 sudo tee /etc/systemd/system/pi-assistant.service > /dev/null <<EOF
 [Unit]
 Description=Pi Assistant - Dutch Learning AI
@@ -12,10 +16,10 @@ Wants=ollama.service
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/workspace/speak-dutch-to-me/pi-assistant
+User=$CURRENT_USER
+WorkingDirectory=$PROJECT_DIR/pi-assistant
 # Use virtual environment Python
-ExecStart=/home/pi/workspace/speak-dutch-to-me/pi-assistant/venv/bin/python main.py
+ExecStart=$PROJECT_DIR/pi-assistant/venv/bin/python main.py
 Restart=always
 RestartSec=10
 StandardOutput=journal

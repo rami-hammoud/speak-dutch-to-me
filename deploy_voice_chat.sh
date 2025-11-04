@@ -25,30 +25,48 @@ echo ""
 echo -e "${BLUE}Step 2: Installing Python dependencies...${NC}"
 cd pi-assistant
 
+# Check if we have a virtual environment
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv venv
+fi
+
+# Activate virtual environment
+echo "Activating virtual environment..."
+source venv/bin/activate
+
 # Install Google Calendar dependencies
 echo "Installing Google Calendar API packages..."
-pip3 install --user google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+pip install --upgrade pip
+pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
 
 # Install any other new dependencies
 echo "Installing other dependencies..."
-pip3 install --user -r requirements.txt || echo "Some packages may already be installed"
+pip install -r requirements.txt || echo "Some packages may already be installed"
+
+# Deactivate venv (systemd service will use it)
+deactivate
 
 echo ""
-echo -e "${BLUE}Step 3: Checking services...${NC}"
+echo -e "${BLUE}Step 3: Updating systemd service...${NC}"
+cd ..
+./update_service.sh
 
-# Check if assistant is running
+echo ""
+echo -e "${BLUE}Step 4: Checking services...${NC}"
+cd pi-assistant
+
+# Service is already restarted by update_service.sh
+sleep 2
 if systemctl is-active --quiet pi-assistant; then
-    echo "Pi Assistant service is running"
-    echo "Restarting service..."
-    sudo systemctl restart pi-assistant
+    echo "✅ Pi Assistant service is running"
 else
-    echo "Pi Assistant service is not running"
-    echo "Starting service..."
-    sudo systemctl start pi-assistant
+    echo "⚠️  Pi Assistant service failed to start"
+    echo "Check logs: sudo journalctl -u pi-assistant -n 50"
 fi
 
 echo ""
-echo -e "${BLUE}Step 4: Checking Ollama...${NC}"
+echo -e "${BLUE}Step 5: Checking Ollama...${NC}"
 if systemctl is-active --quiet ollama; then
     echo "✅ Ollama service is running"
 else

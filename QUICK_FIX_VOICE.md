@@ -34,6 +34,7 @@ sudo systemctl status pi-assistant
 - ✅ Method name: `recognize_from_bytes()` → `recognize()`
 - ✅ Audio format: Added webm → WAV conversion
 - ✅ Added ffmpeg for audio processing
+- ✅ Added FLAC for speech recognition
 - ✅ Fixed base64 decoding
 
 ---
@@ -47,8 +48,9 @@ sudo journalctl -u pi-assistant -f
 # Restart if needed
 sudo systemctl restart pi-assistant
 
-# Check ffmpeg installed
+# Check dependencies installed
 ffmpeg -version
+flac --version
 ```
 
 ---

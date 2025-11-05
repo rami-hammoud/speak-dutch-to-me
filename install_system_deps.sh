@@ -15,13 +15,25 @@ echo ""
 echo "Installing ffmpeg for audio conversion..."
 sudo apt-get install -y ffmpeg
 
-# Verify installation
+# Install FLAC for speech recognition
+echo ""
+echo "Installing FLAC for speech recognition..."
+sudo apt-get install -y flac
+
+# Verify installations
 echo ""
 echo "Verifying installations..."
 if command -v ffmpeg &> /dev/null; then
     echo "✅ ffmpeg installed: $(ffmpeg -version | head -n1)"
 else
     echo "❌ ffmpeg installation failed"
+    exit 1
+fi
+
+if command -v flac &> /dev/null; then
+    echo "✅ FLAC installed: $(flac --version | head -n1)"
+else
+    echo "❌ FLAC installation failed"
     exit 1
 fi
 

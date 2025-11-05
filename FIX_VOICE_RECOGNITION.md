@@ -20,13 +20,13 @@ The connection IS encrypted, your browser just doesn't trust the self-signed cer
 **Root Causes Identified:**
 1. ❌ Method name mismatch: Called `recognize_from_bytes()` instead of `recognize()`
 2. ❌ Audio format issue: Browser sends webm, but backend expects WAV
-3. ❌ Missing ffmpeg for audio conversion
+3. ❌ Missing system dependencies: ffmpeg and FLAC not installed
 
 **Fixes Applied:**
 1. ✅ Corrected method name to `recognize()`
 2. ✅ Added `convert_webm_to_wav()` function to handle audio format conversion
 3. ✅ Added base64 decoding for audio data from browser
-4. ✅ Created `install_system_deps.sh` to install ffmpeg
+4. ✅ Created `install_system_deps.sh` to install ffmpeg and FLAC
 
 ---
 
@@ -91,12 +91,19 @@ sudo systemctl restart pi-assistant
 
 ## 📊 Troubleshooting
 
-### Issue: "Could not process audio format"
-**Solution:** Install ffmpeg
+### Issue: "Could not process audio format" OR "FLAC conversion utility not available"
+**Solution:** Install ffmpeg and FLAC
 ```bash
 sudo apt-get update
-sudo apt-get install -y ffmpeg
-ffmpeg -version  # Verify installation
+sudo apt-get install -y ffmpeg flac
+ffmpeg -version  # Verify ffmpeg
+flac --version   # Verify FLAC
+sudo systemctl restart pi-assistant
+```
+
+**Or use the installer script:**
+```bash
+./install_system_deps.sh
 sudo systemctl restart pi-assistant
 ```
 
@@ -168,6 +175,7 @@ Try these voice commands after fixing:
 
 ### Dependencies:
 - **ffmpeg**: Audio format conversion (webm → WAV)
+- **FLAC**: Audio codec for speech recognition library
 - **speech_recognition**: Speech-to-text backend
 - **uvicorn**: HTTPS server
 - **FastAPI**: WebSocket communication

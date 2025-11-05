@@ -3,6 +3,9 @@ import logging
 import os
 import signal
 import sys
+import base64
+import tempfile
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -34,6 +37,61 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def convert_webm_to_wav(webm_data: bytes) -> bytes:
+    """
+    Convert webm audio to WAV format using ffmpeg
+    
+    Args:
+        webm_data: Audio data in webm format
+        
+    Returns:
+        Audio data in WAV format (16kHz, mono, 16-bit PCM)
+    """
+    try:
+        # Create temp files
+        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as webm_file:
+            webm_file.write(webm_data)
+            webm_path = webm_file.name
+        
+        wav_path = webm_path.replace(".webm", ".wav")
+        
+        # Convert using ffmpeg
+        process = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-i", webm_path,
+            "-ar", "16000",  # 16kHz sample rate
+            "-ac", "1",      # Mono
+            "-f", "wav",     # WAV format
+            wav_path,
+            "-y",            # Overwrite output
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode != 0:
+            logger.error(f"ffmpeg conversion failed: {stderr.decode()}")
+            # Clean up
+            Path(webm_path).unlink(missing_ok=True)
+            return None
+        
+        # Read converted WAV
+        with open(wav_path, "rb") as wav_file:
+            wav_data = wav_file.read()
+        
+        # Clean up temp files
+        Path(webm_path).unlink(missing_ok=True)
+        Path(wav_path).unlink(missing_ok=True)
+        
+        logger.info(f"Converted {len(webm_data)} bytes webm to {len(wav_data)} bytes WAV")
+        return wav_data
+        
+    except Exception as e:
+        logger.error(f"Audio conversion error: {e}")
+        return None
+
 
 class PiAssistant:
     """Main Pi Assistant application"""
@@ -368,9 +426,26 @@ class PiAssistant:
                     return
                 
                 try:
+                    # Decode base64 audio data
+                    if isinstance(audio_data, str):
+                        audio_bytes = base64.b64decode(audio_data)
+                    else:
+                        audio_bytes = audio_data
+                    
+                    logger.info(f"Received audio data: {len(audio_bytes)} bytes")
+                    
+                    # Convert webm to WAV format
+                    wav_data = await convert_webm_to_wav(audio_bytes)
+                    if not wav_data:
+                        await websocket.send_json({
+                            "type": "voice_error",
+                            "message": "Could not process audio format. Please ensure ffmpeg is installed."
+                        })
+                        return
+                    
                     # Recognize speech
-                    text = await self.voice_recognition.recognize_from_bytes(
-                        audio_data.encode() if isinstance(audio_data, str) else audio_data,
+                    text = await self.voice_recognition.recognize(
+                        wav_data,
                         language
                     )
                     

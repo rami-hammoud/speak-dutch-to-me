@@ -15,43 +15,43 @@ A Raspberry Pi-powered AI assistant designed to help you learn Dutch through con
 ### Prerequisites
 
 - Raspberry Pi 4/5 (4GB+ RAM recommended)
-- Debian Trixie (testing) OS
+- Raspberry Pi OS Bookworm
 - Internet connection for initial setup
-- Microphone (optional, for pronunciation features)
+- Microphone (for voice commands)
 - Camera (optional, for future features)
 
-### Installation
+### One-Command Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/speak-dutch-to-me.git
-   cd speak-dutch-to-me
-   ```
+On your Raspberry Pi, run:
 
-2. **Run the setup script**:
-   ```bash
-   chmod +x setup_trixie.sh
-   ./setup_trixie.sh
-   ```
-   
-   The setup script will:
-   - Install system dependencies
-   - Set up Python virtual environment
-   - Install Ollama and download Dutch-capable models
-   - Configure database and seed vocabulary
-   - Set up optional camera/audio support
+```bash
+curl -sSL https://raw.githubusercontent.com/rami-hammoud/speak-dutch-to-me/main/deploy.sh | bash -s -- --https
+```
 
-3. **Start the assistant**:
-   ```bash
-   cd pi-assistant
-   ./start_assistant.sh
-   ```
+Or clone and deploy:
 
-4. **Access the web interface**:
-   Open your browser and navigate to:
-   ```
-   http://YOUR_PI_IP:8080
-   ```
+```bash
+git clone https://github.com/rami-hammoud/speak-dutch-to-me.git
+cd speak-dutch-to-me
+./deploy.sh --https
+```
+
+That's it! The script will:
+- ✅ Install all dependencies (ffmpeg, FLAC, Python packages)
+- ✅ Setup Python virtual environment
+- ✅ Generate SSL certificates for HTTPS
+- ✅ Configure systemd service
+- ✅ Start Pi Assistant automatically
+
+### Access the Web Interface
+
+```
+https://YOUR_PI_IP:8080/voice-chat
+```
+
+Click "Advanced" → "Proceed" to bypass the self-signed certificate warning.
+
+**📚 Full Documentation:** See [DEPLOY.md](DEPLOY.md) for detailed deployment options and troubleshooting.
 
 ## 📋 Project Structure
 
